@@ -1,0 +1,33 @@
+# Виртуальные окружения
+venv/
+.venv/
+*/venv/
+*/.venv/
+
+# Python кэши
+__pycache__/
+*/__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*/*.egg-info/
+
+# Переменные окружения — СЕКРЕТЫ
+.env
+*.env
+*/.env
+
+# IDE
+.vscode/
+.idea/
+
+# Alembic (опционально — версии миграций обычно коммитят, но кэш нет)
+alembic/__pycache__/
+
+# Тесты/покрытие
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ОС
+.DS_Store
