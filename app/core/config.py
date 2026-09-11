@@ -8,13 +8,19 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = Field(default="lit-tracker", env="SERVICE_NAME")
     PORT: int = Field(default=8001, env="PORT")
 
-    EMBEDDING_MODEL: str = Field(
-        default="all-MiniLM-L6-v2",
-        env="EMBEDDING_MODEL"
+    # OpenAI
+    OPENAI_API_KEY: str = Field(default="sk-mock", env="OPENAI_API_KEY")
+    OPENAI_EMBEDDING_MODEL: str = Field(
+        default="text-embedding-3-small",
+        env="OPENAI_EMBEDDING_MODEL",
     )
-    EMBEDDING_DIMENSION: int = Field(
-        default=384,
-        env="EMBEDDING_DIMENSION"
+    OPENAI_EMBEDDING_DIMENSION: int = Field(
+        default=1536,
+        env="OPENAI_EMBEDDING_DIMENSION",
+    )
+    OPENAI_LLM_MODEL: str = Field(
+        default="gpt-4o-mini",
+        env="OPENAI_LLM_MODEL",
     )
 
 

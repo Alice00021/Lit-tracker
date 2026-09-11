@@ -1,8 +1,12 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import (
+    create_async_engine,
+    async_sessionmaker,
+    AsyncSession,
+)
 from common import Base
 from app.core.config import settings
 
-# Создаём движок БД
+# Движок БД
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DATABASE_ECHO,
@@ -17,16 +21,30 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False,
 )
 
-async def get_db() -> AsyncSession:
-    """Получить сессию БД для Dependency Injection"""
+
+async def get_session() -> AsyncSession:
+    """
+    FastAPI dependency — сессия БД на один запрос.
+
+    Автоматически:
+    - commit при успехе
+    - rollback при ошибке
+    - close всегда
+    """
     async with AsyncSessionLocal() as session:
         try:
             yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
         finally:
             await session.close()
 
+
 async def init_db():
-    """Создать таблицы (для разработки)"""
+    """Создать таблицы (для разработки)."""
+    from app.models import User, Book, ReadingEntry  # noqa: F401
+
     async with engine.begin() as conn:
-        from app.models import User, Book, ReadingEntry
         await conn.run_sync(Base.metadata.create_all)
