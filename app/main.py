@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from common import setup_logging, get_logger, setup_cors
 from app.core.config import settings
@@ -36,6 +37,9 @@ app = FastAPI(
 
 setup_cors(app, origins=settings.CORS_ORIGINS)
 app.include_router(books_router)
+
+# Подключаем метрики
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 
 @app.exception_handler(NotFoundError)

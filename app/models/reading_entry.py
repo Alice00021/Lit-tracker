@@ -15,7 +15,6 @@ class ReadingEntry(BaseModel):
     read_date = Column(Date, nullable=False)
     rating = Column(Integer, nullable=True)  # 1-5
 
-    # Отношения
     user = relationship("User")
     book = relationship("Book")
 

@@ -31,3 +31,7 @@ htmlcov/
 
 # ОС
 .DS_Store
+
+# Monitoring data (volumes)
+monitoring/prometheus/data/
+monitoring/grafana/data/
