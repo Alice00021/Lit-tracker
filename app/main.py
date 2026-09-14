@@ -6,7 +6,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from common import setup_logging, get_logger, setup_cors
 from app.core.config import settings
 from app.core.database import init_db, engine
-from app.interfaces.api.book_routes import router as books_router
+from app.interfaces.api import api_router
 from app.domain.exceptions import NotFoundError
 
 setup_logging(
@@ -20,12 +20,11 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info(f"🚀 Starting {settings.SERVICE_NAME}")
+    logger.info(f"Starting {settings.SERVICE_NAME}")
     await init_db()
-    logger.info("✅ Database initialized")
     yield
     await engine.dispose()
-    logger.info("👋 Shutdown")
+    logger.info("Shutdown")
 
 
 app = FastAPI(
@@ -36,9 +35,11 @@ app = FastAPI(
 )
 
 setup_cors(app, origins=settings.CORS_ORIGINS)
-app.include_router(books_router)
 
-# Подключаем метрики
+# Все роуты через один router
+app.include_router(api_router)
+
+# Метрики
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 

@@ -1,0 +1,9 @@
+from fastapi import APIRouter
+from app.interfaces.api.book_routes import router as books_router
+from app.interfaces.api.reading_entry_routes import router as reading_entries_router
+
+api_router = APIRouter()
+api_router.include_router(books_router)
+api_router.include_router(reading_entries_router)
+
+__all__ = ["api_router"]
