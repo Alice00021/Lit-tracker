@@ -64,14 +64,18 @@ class SqlAlchemyReadingEntryRepository(IReadingEntryRepository):
         )
         self.session.add(model)
         await self.session.flush()
-        await self.session.refresh(model)
+        await self.session.refresh(model, attribute_names=["book"])
         return self._to_entity(model)
 
-    async def get_by_id(self, id: int) -> Optional[ReadingEntryEntity] :
+    async def get_by_id(self, entry_id: int) -> Optional[ReadingEntryEntity] :
         stmt = (
-            select(ReadingEntryModel).where(
-            ReadingEntryModel.id == id, ReadingEntryModel.deleted_at.is_(None)
-        ))
+            select(ReadingEntryModel)
+            .where(
+                ReadingEntryModel.id == entry_id,
+                ReadingEntryModel.deleted_at.is_(None),
+                )
+            .options(selectinload(ReadingEntryModel.book))
+        )
         result = await self.session.execute(stmt)
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
@@ -87,7 +91,15 @@ class SqlAlchemyReadingEntryRepository(IReadingEntryRepository):
         model.rating = entry.rating
 
         await self.session.flush()
-        await self.session.refresh(model, attribute_names=["book"])
+        stmt = (
+            select(ReadingEntryModel)
+            .where(ReadingEntryModel.id == entry.id)
+            .options(selectinload(ReadingEntryModel.book))
+            .execution_options(populate_existing=True)
+        )
+        result = await self.session.execute(stmt)
+        model = result.scalar_one()
+
         return self._to_entity(model)
 
     async def delete(self, id: int) -> None:

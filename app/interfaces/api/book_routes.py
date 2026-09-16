@@ -23,9 +23,9 @@ async def list_books(
 
 
 @router.get("/{book_id}", response_model=BookReadSchema)
-async def get_book(id: int, service: BookService = Depends(get_book_service)):
+async def get_book(book_id: int, service: BookService = Depends(get_book_service)):
     try:
-        book = await service.get_book(id)
+        book = await service.get_book(book_id)
         return BookReadSchema.model_validate(book, from_attributes=True)
     except NotFoundError as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))

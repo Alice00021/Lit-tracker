@@ -1,5 +1,6 @@
 from typing import Optional
 from app.domain.entities.reading_entry import ReadingEntryEntity
+from app.domain.entities.book import BookEntity
 from app.domain.interfaces.reading_entry_repository import IReadingEntryRepository
 from app.domain.interfaces.book_repository import IBookRepository
 from app.domain.exceptions import NotFoundError
@@ -26,39 +27,38 @@ class ReadingEntryService:
         self.embedding_client = embedding_client
 
 
-    async def create_entry(
-            self,
-            user_id: int,
-            data: ReadingEntryCreateSchema,
-    ) -> ReadingEntryEntity:
-        """
-        Создать запись о чтении.
-
-        Шаги:
-        1. Сгенерировать эмбеддинг заметки
-        2. Найти или создать книгу (с эмбеддингом)
-        3. Создать запись
-        """
+    async def create_entry(self, user_id: int, data: ReadingEntryCreateSchema) -> ReadingEntryEntity:
         logger.info(f"Creating entry for user {user_id}: {data.book_title}")
 
-        #  Эмбеддинг заметки
+        # 1. Эмбеддинг заметки
         note_embedding = await self.embedding_client.get_embedding(data.note)
 
-        #  Эмбеддинг книги
+        # 2. Эмбеддинг книги
         book_text = f"{data.book_title} {data.book_author}"
         if data.book_description:
             book_text += f" {data.book_description}"
         book_embedding = await self.embedding_client.get_embedding(book_text)
 
-        #  Найти или создать книгу
-        book = await self.book_repo.create(
+        # 3. Найти или создать книгу — O(log N)
+        book = await self.book_repo.get_by_title_author(
             title=data.book_title,
             author=data.book_author,
-            description=data.book_description,
-            embedding=book_embedding,
         )
 
-        #  Создать запись
+        if book is None:
+            logger.debug(f"Book not found, creating: {data.book_title}")
+            new_book = BookEntity(
+                id=None,
+                title=data.book_title,
+                author=data.book_author,
+                description=data.book_description,
+                embedding=book_embedding,
+            )
+            book = await self.book_repo.create(new_book)
+        else:
+            logger.debug(f"Book found: id={book.id}")
+
+        # 4. Создать запись
         entry = ReadingEntryEntity(
             id=None,
             user_id=user_id,

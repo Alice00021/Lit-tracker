@@ -36,6 +36,17 @@ class SqlAlchemyBookRepository(IBookRepository):
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
+    async def get_by_title_author(self, title: str, author: str) -> Optional[BookEntity]:
+        """Найти книгу по названию и автору."""
+        stmt = select(BookModel).where(
+            BookModel.title == title,
+            BookModel.author == author,
+            BookModel.deleted_at.is_(None),
+            )
+        result = await self.session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return self._to_entity(model) if model else None
+
     async def update(self, book: BookEntity) -> BookEntity:
         stmt = select(BookModel).where(BookModel.id == book.id)
         result = await self.session.execute(stmt)

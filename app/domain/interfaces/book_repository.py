@@ -11,6 +11,9 @@ class IBookRepository(ABC):
     async def get_by_id(self, book_id: int) -> Optional[BookEntity]: ...
 
     @abstractmethod
+    async def get_by_title_author(self, title: str, author: str) -> Optional[BookEntity]: ...
+
+    @abstractmethod
     async def update(self, book: BookEntity) -> BookEntity: ...
 
     @abstractmethod
