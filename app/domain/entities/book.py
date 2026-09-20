@@ -9,7 +9,7 @@ class BookEntity:
     title: str
     author: str
     description: Optional[str]
-    embedding: Optional[list[float]]
+    embedding: Optional[list[float]] = None
     created_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
 

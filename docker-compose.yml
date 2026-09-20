@@ -1,0 +1,88 @@
+version: '3.8'
+
+networks:
+  monitoring:
+    driver: bridge
+  lit-tracker:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  postgres_data:
+  redis_data:
+
+services:
+  # ============ PostgreSQL ============
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: lit-tracker-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lit_tracker
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lit-tracker
+
+  # ============ Redis ============
+  redis:
+    image: redis:7-alpine
+    container_name: lit-tracker-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"        # ← 6380, чтобы не конфликтовать с dev_redis
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lit-tracker
+
+  # ============ Prometheus ============
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: lit-tracker-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - monitoring
+
+  # ============ Grafana ============
+  grafana:
+    image: grafana/grafana:latest
+    container_name: lit-tracker-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring

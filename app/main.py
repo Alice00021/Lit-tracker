@@ -3,11 +3,13 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from common import setup_logging, get_logger, setup_cors
+from common import setup_logging, get_logger, setup_cors, init_redis, close_redis
 from app.core.config import settings
 from app.core.database import init_db, engine
 from app.interfaces.api import api_router
 from app.domain.exceptions import NotFoundError
+
+from app.interfaces.api.middlewares.rate_limit import RateLimitMiddleware
 
 setup_logging(
     service_name=settings.SERVICE_NAME,
@@ -22,7 +24,13 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.SERVICE_NAME}")
     await init_db()
+
+    # Redis
+    await init_redis(settings.REDIS_URL)
+    logger.info(f"✅ Redis connected: {settings.REDIS_URL}")
+
     yield
+
     await engine.dispose()
     logger.info("Shutdown")
 
@@ -41,6 +49,8 @@ app.include_router(api_router)
 
 # Метрики
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
+app.add_middleware(RateLimitMiddleware, limit=100, window=60)
 
 
 @app.exception_handler(NotFoundError)

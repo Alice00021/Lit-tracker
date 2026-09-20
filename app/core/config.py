@@ -44,4 +44,13 @@ class Settings(BaseSettings):
     OPENAI_TEMPERATURE: float = Field(default=0.7, env="OPENAI_TEMPERATURE")
     OPENAI_MAX_TOKENS: int = Field(default=1000, env="OPENAI_MAX_TOKENS")
 
+    REDIS_URL: str = Field(
+        default="redis://localhost:6379/0",
+        env="REDIS_URL",
+    )
+    CACHE_TTL_SECONDS: int = Field(
+        default=300,
+        env="CACHE_TTL_SECONDS",
+    )
+
 settings = Settings()
