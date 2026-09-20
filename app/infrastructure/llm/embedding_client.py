@@ -1,37 +1,45 @@
-import random
+import httpx
 from typing import List
 from app.core.config import settings
-from common import get_logger
+from common import get_logger, ServiceError
 
 logger = get_logger(__name__)
 
 
 class EmbeddingClient:
     """
-    Клиент для генерации эмбеддингов.
-
-    Сейчас — МОК (случайный вектор).
-    Потом заменим на реальный OpenAI API.
+    Клиент для генерации эмбеддингов через Ollama API.
     """
 
     def __init__(self):
-        self.dimension = settings.OPENAI_EMBEDDING_DIMENSION
-        self.model = settings.OPENAI_EMBEDDING_MODEL
-        logger.warning(
-            f"⚠️ EmbeddingClient using MOCK mode "
-            f"(dimension={self.dimension}, model={self.model})"
+        self.base_url = settings.OLLAMA_BASE_URL
+        self.model = settings.OLLAMA_EMBEDDING_MODEL
+        self.dimension = settings.EMBEDDING_DIMENSION
+        logger.info(
+            f"✅ Ollama EmbeddingClient: {self.model} (dim={self.dimension})"
         )
 
     async def get_embedding(self, text: str) -> List[float]:
-        """Получить эмбеддинг для текста (МОК)."""
+        """Получить эмбеддинг для текста."""
         if not text or not text.strip():
             return [0.0] * self.dimension
 
-        # Генерируем случайный вектор и нормализуем (unit vector)
-        vec = [random.gauss(0, 1) for _ in range(self.dimension)]
-        norm = sum(x * x for x in vec) ** 0.5
-        return [x / norm for x in vec] if norm > 0 else vec
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/embeddings",
+                    json={
+                        "model": self.model,
+                        "prompt": text.strip(),
+                    },
+                )
+                response.raise_for_status()
+                data = response.json()
+                return data["embedding"]
 
-    async def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Получить эмбеддинги для списка текстов."""
-        return [await self.get_embedding(t) for t in texts]
+        except httpx.HTTPError as e:
+            logger.error(f"Ollama HTTP error: {e}")
+            raise ServiceError(f"Failed to call Ollama: {str(e)}")
+        except Exception as e:
+            logger.error(f"Embedding error: {e}")
+            raise ServiceError(f"Failed to generate embedding: {str(e)}")
