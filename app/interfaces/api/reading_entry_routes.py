@@ -10,33 +10,34 @@ from app.interfaces.schemas.reading_entry import (
 )
 from app.domain.exceptions import NotFoundError
 
-router = APIRouter(prefix="/books/entries", tags=["reading-entries"])
+router = APIRouter(prefix="/books", tags=["reading-entries"])
 
-# Временно, пока нет авторизации
 CURRENT_USER_ID = 1
 
-
 @router.post(
-    "",
+    "/{book_id}/entries",
     response_model=ReadingEntryReadSchema,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_entry(
+async def create_entry_for_book(
+        book_id: int,
         data: ReadingEntryCreateSchema,
         service: ReadingEntryService = Depends(get_reading_entry_service),
 ):
     """
     Добавить запись о прочитанной книге.
 
-    - Генерирует эмбеддинги заметки и книги через OpenAI
-    - Создаёт книгу или находит существующую
+    - book_id передаётся через URL
+    - Генерирует эмбеддинг заметки
     - Возвращает созданную запись
     """
-    entry = await service.create_entry(CURRENT_USER_ID, data)
-    return ReadingEntryReadSchema.model_validate(entry, from_attributes=True)
+    try:
+        entry = await service.create_entry(CURRENT_USER_ID, book_id, data)
+        return ReadingEntryReadSchema.model_validate(entry, from_attributes=True)
+    except NotFoundError as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 
-
-@router.get("", response_model=ReadingEntryPaginatedSchema)
+@router.get("/entries", response_model=ReadingEntryPaginatedSchema)
 async def list_entries(
         page: int = Query(1, ge=1),
         page_size: int = Query(20, ge=1, le=100),
@@ -45,8 +46,7 @@ async def list_entries(
     """Список записей текущего пользователя с пагинацией."""
     return await service.list_entries(CURRENT_USER_ID, page, page_size)
 
-
-@router.get("/{entry_id}", response_model=ReadingEntryReadSchema)
+@router.get("/entries/{entry_id}", response_model=ReadingEntryReadSchema)
 async def get_entry(
         entry_id: int,
         service: ReadingEntryService = Depends(get_reading_entry_service),
@@ -59,7 +59,7 @@ async def get_entry(
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 
 
-@router.patch("/{entry_id}", response_model=ReadingEntryReadSchema)
+@router.patch("/entries/{entry_id}", response_model=ReadingEntryReadSchema)
 async def update_entry(
         entry_id: int,
         data: ReadingEntryUpdateSchema,
@@ -77,7 +77,7 @@ async def update_entry(
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 
 
-@router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/entries/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_entry(
         entry_id: int,
         service: ReadingEntryService = Depends(get_reading_entry_service),

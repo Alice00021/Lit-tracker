@@ -27,38 +27,15 @@ class ReadingEntryService:
         self.embedding_client = embedding_client
 
 
-    async def create_entry(self, user_id: int, data: ReadingEntryCreateSchema) -> ReadingEntryEntity:
-        logger.info(f"Creating entry for user {user_id}: {data.book_title}")
+    async def create_entry(self, user_id: int, book_id: int, data: ReadingEntryCreateSchema) -> ReadingEntryEntity:
+        logger.info(f"Creating entry for user {user_id}: {book_id}")
 
-        # 1. Эмбеддинг заметки
+        book = await self.book_repo.get_by_id(book_id)
+        if not book:
+            raise NotFoundError("Book", book_id)
+
         note_embedding = await self.embedding_client.get_embedding(data.note)
 
-        # 2. Эмбеддинг книги
-        book_text = f"{data.book_title} {data.book_author}"
-        if data.book_description:
-            book_text += f" {data.book_description}"
-        book_embedding = await self.embedding_client.get_embedding(book_text)
-
-        # 3. Найти или создать книгу — O(log N)
-        book = await self.book_repo.get_by_title_author(
-            title=data.book_title,
-            author=data.book_author,
-        )
-
-        if book is None:
-            logger.debug(f"Book not found, creating: {data.book_title}")
-            new_book = BookEntity(
-                id=None,
-                title=data.book_title,
-                author=data.book_author,
-                description=data.book_description,
-                embedding=book_embedding,
-            )
-            book = await self.book_repo.create(new_book)
-        else:
-            logger.debug(f"Book found: id={book.id}")
-
-        # 4. Создать запись
         entry = ReadingEntryEntity(
             id=None,
             user_id=user_id,

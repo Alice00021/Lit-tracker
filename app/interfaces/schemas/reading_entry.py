@@ -5,31 +5,18 @@ from app.interfaces.schemas.book import BookReadSchema
 
 
 class ReadingEntryCreateSchema(BaseModel):
-    book_title: str = Field(
-        ...,
-        min_length=1,
-        max_length=500,
-        description="Название книг",
-    )
-    book_author: str = Field(
-        ...,
-        min_length=1,
-        max_length=255,
-        description="Автор книги",
-    )
-    book_description: Optional[str] = Field(
-        None,
-        description="Описание книги (опционально)",
-    )
+
     note: str = Field(
         ...,
         min_length=10,
         description="Заметка о книге (минимум 10 символов)",
     )
+
     read_date: date = Field(
         ...,
         description="Дата прочтения",
     )
+
     rating: Optional[int] = Field(
         None,
         ge=1,
@@ -43,10 +30,12 @@ class ReadingEntryUpdateSchema(BaseModel):
         min_length=10,
         description="Новая заметка",
     )
+
     read_date: Optional[date] = Field(
         None,
         description="Новая дата прочтения",
     )
+
     rating: Optional[int] = Field(
         None,
         ge=1,
