@@ -1,18 +1,18 @@
-"""init
+"""Initial migration with 768 dim
 
-Revision ID: 83cc0ddaaf95
+Revision ID: 356c86d2403c
 Revises: 
-Create Date: 2026-09-10 12:54:01.867221
+Create Date: 2026-09-20 15:55:47.332151
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-
+import pgvector.sqlalchemy
 
 # revision identifiers, used by Alembic.
-revision: str = '83cc0ddaaf95'
+revision: str = '356c86d2403c'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,7 +25,7 @@ def upgrade() -> None:
     sa.Column('title', sa.String(length=500), nullable=False),
     sa.Column('author', sa.String(length=255), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('embedding', pgvector.sqlalchemy.vector.VECTOR(dim=384), nullable=True),
+    sa.Column('embedding', pgvector.sqlalchemy.vector.VECTOR(dim=768), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -48,7 +48,7 @@ def upgrade() -> None:
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('book_id', sa.Integer(), nullable=False),
     sa.Column('note', sa.Text(), nullable=False),
-    sa.Column('note_embedding', pgvector.sqlalchemy.vector.VECTOR(dim=384), nullable=True),
+    sa.Column('note_embedding', pgvector.sqlalchemy.vector.VECTOR(dim=768), nullable=True),
     sa.Column('read_date', sa.Date(), nullable=False),
     sa.Column('rating', sa.Integer(), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),

@@ -11,7 +11,7 @@ class ReadingEntry(BaseModel):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
     note = Column(Text, nullable=False)
-    note_embedding = Column(Vector(settings.OPENAI_EMBEDDING_DIMENSION), nullable=True)
+    note_embedding = Column(Vector(settings.EMBEDDING_DIMENSION), nullable=True)
     read_date = Column(Date, nullable=False)
     rating = Column(Integer, nullable=True)  # 1-5
 
