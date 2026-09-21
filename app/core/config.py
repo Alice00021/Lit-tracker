@@ -8,8 +8,6 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = Field(default="lit-tracker", env="SERVICE_NAME")
     PORT: int = Field(default=8001, env="PORT")
 
-    # Ollama
-    EMBEDDING_PROVIDER: str = Field(default="ollama", env="EMBEDDING_PROVIDER")
     OLLAMA_BASE_URL: str = Field(
         default="http://localhost:11434",
         env="OLLAMA_BASE_URL",
@@ -27,30 +25,15 @@ class Settings(BaseSettings):
         env="EMBEDDING_DIMENSION",
     )
 
-    # OpenAI
-    OPENAI_API_KEY: str = Field(default="sk-mock", env="OPENAI_API_KEY")
-    OPENAI_EMBEDDING_MODEL: str = Field(
-        default="text-embedding-3-small",
-        env="OPENAI_EMBEDDING_MODEL",
-    )
-    OPENAI_EMBEDDING_DIMENSION: int = Field(
-        default=1536,
-        env="OPENAI_EMBEDDING_DIMENSION",
-    )
-    OPENAI_LLM_MODEL: str = Field(
-        default="gpt-4o-mini",
-        env="OPENAI_LLM_MODEL",
-    )
-    OPENAI_TEMPERATURE: float = Field(default=0.7, env="OPENAI_TEMPERATURE")
-    OPENAI_MAX_TOKENS: int = Field(default=1000, env="OPENAI_MAX_TOKENS")
-
+    # Redis
     REDIS_URL: str = Field(
-        default="redis://localhost:6379/0",
+        default="redis://localhost:6380/0",
         env="REDIS_URL",
     )
     CACHE_TTL_SECONDS: int = Field(
         default=300,
         env="CACHE_TTL_SECONDS",
     )
+
 
 settings = Settings()
