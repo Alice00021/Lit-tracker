@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, List
 from app.domain.entities.reading_entry import ReadingEntryEntity
 
 
