@@ -82,6 +82,5 @@ async def get_recommendation_service(
         book_repo: IBookRepository = Depends(get_book_repository),
         entry_repo: IReadingEntryRepository = Depends(get_reading_entry_repository),
         profile_repo: ITasteProfileRepository = Depends(get_taste_profile_repository),
-        llm_client: LLMClient = Depends(get_llm_client),
 ) -> RecommendationService:
-    return RecommendationService(book_repo, entry_repo, profile_repo, llm_client)
+    return RecommendationService(book_repo, entry_repo, profile_repo)

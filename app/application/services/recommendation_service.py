@@ -1,10 +1,8 @@
-from typing import Optional
 from app.domain.entities.book import BookEntity
 from app.domain.interfaces.book_repository import IBookRepository
 from app.domain.interfaces.reading_entry_repository import IReadingEntryRepository
 from app.domain.interfaces.taste_profile_repository import ITasteProfileRepository
 from common.exceptions import NotFoundError
-from app.infrastructure.llm.llm_client import LLMClient
 from common import get_logger
 
 logger = get_logger(__name__)
@@ -17,9 +15,9 @@ class RecommendationService:
     Логика:
     1. Получить Taste Profile (анализ вкуса через LLM)
     2. Получить прочитанные книги
-    3. Усреднить эмбеддинги всех заметок - «вектор вкуса»
+    3. Усреднить эмбеддинги всех заметок → «вектор вкуса»
     4. Найти похожие книги через pgvector (top-N)
-    5. LLM: объяснить, почему каждая книга подходит
+    5. Сформировать reason на основе similarity score
     """
 
     def __init__(
@@ -27,18 +25,15 @@ class RecommendationService:
             book_repo: IBookRepository,
             entry_repo: IReadingEntryRepository,
             profile_repo: ITasteProfileRepository,
-            llm_client: LLMClient,
     ):
         self.book_repo = book_repo
         self.entry_repo = entry_repo
         self.profile_repo = profile_repo
-        self.llm_client = llm_client
 
     async def get_recommendations(
             self,
             user_id: int,
             limit: int = 10,
-            explain: bool = True,
     ) -> list[dict]:
         """
         Получить рекомендации книг для пользователя.
@@ -46,7 +41,6 @@ class RecommendationService:
         Args:
             user_id: ID пользователя
             limit: Сколько книг рекомендовать
-            explain: Использовать ли LLM для объяснений
 
         Returns:
             [
@@ -101,89 +95,15 @@ class RecommendationService:
             return []
 
         # 5. Формируем рекомендации с reason
-        if explain:
-            # LLM: объяснить, почему каждая подходит
-            recommendations = await self._explain_with_llm(
-                books_with_scores=similar_books,
-                taste_analysis=profile.analysis,
-            )
-        else:
-            # Просто similarity score
-            recommendations = self._format_simple(similar_books)
-
+        recommendations = self._format_recommendations(similar_books)
         logger.info(f"Found {len(recommendations)} recommendations for user {user_id}")
         return recommendations
 
-    async def _explain_with_llm(
-            self,
-            books_with_scores: list[tuple[BookEntity, float]],
-            taste_analysis: dict,
-    ) -> list[dict]:
-        """
-        Объяснить через LLM, почему каждая книга подходит.
-
-        Один вызов LLM для всех книг — batch.
-        """
-        if not books_with_scores:
-            return []
-
-        # Формируем промпт
-        books_text = "\n".join(
-            f"{i+1}. \"{book.title}\" — {book.author} "
-            f"(описание: {book.description or 'нет'}, similarity: {score:.2f})"
-            for i, (book, score) in enumerate(books_with_scores)
-        )
-
-        prompt = f"""Пользователь имеет следующий профиль вкуса:
-{self._format_taste_analysis(taste_analysis)}
-
-Мы нашли {len(books_with_scores)} книг, которые могут ему понравиться:
-{books_text}
-
-Для каждой книги напиши краткое объяснение (1 предложение), почему она подходит под вкус пользователя.
-Учти его любимые темы, стиль и то, что он ценит.
-
-Верни ТОЛЬКО JSON массив без markdown:
-[
-  {{"index": 1, "reason": "Почему книга 1 подходит..."}},
-  {{"index": 2, "reason": "Почему книга 2 подходит..."}}
-]
-"""
-
-        try:
-            # Вызов LLM (без structured output — свободный текст)
-            explanation = await self.llm_client._call_llm(prompt)
-
-            # Парсим
-            import json
-            reasons_data = json.loads(explanation)
-            reasons_map = {item["index"]: item["reason"] for item in reasons_data}
-
-            # Формируем ответ
-            recommendations = []
-            for i, (book, score) in enumerate(books_with_scores, start=1):
-                recommendations.append({
-                    "book": {
-                        "id": book.id,
-                        "title": book.title,
-                        "author": book.author,
-                        "description": book.description,
-                    },
-                    "similarity": round(score, 3),
-                    "reason": reasons_map.get(i, f"Похожа на ваши прочитанные книги (score: {score:.2f})"),
-                })
-            return recommendations
-
-        except Exception as e:
-            logger.error(f"LLM explanation failed: {e}")
-            # Fallback — без объяснений
-            return self._format_simple(books_with_scores)
-
-    def _format_simple(
+    def _format_recommendations(
             self,
             books_with_scores: list[tuple[BookEntity, float]],
     ) -> list[dict]:
-        """Простой формат без LLM."""
+        """Формируем рекомендации с reason на основе score."""
         return [
             {
                 "book": {
@@ -193,34 +113,34 @@ class RecommendationService:
                     "description": book.description,
                 },
                 "similarity": round(score, 3),
-                "reason": f"Похожа на ваши прочитанные книги (score: {score:.2f})",
+                "reason": self._generate_reason(book, score),
             }
             for book, score in books_with_scores
         ]
 
-    def _format_taste_analysis(self, analysis: dict) -> str:
-        """Форматировать taste analysis для промпта."""
-        if not analysis:
-            return "Профиль вкуса недоступен"
+    def _generate_reason(self, book: BookEntity, score: float) -> str:
+        """
+        Генерация причины на основе similarity score.
 
-        parts = []
-        if analysis.get("themes"):
-            parts.append(f"Любимые темы: {', '.join(analysis['themes'])}")
-        if analysis.get("style"):
-            parts.append(f"Стиль: {analysis['style']}")
-        if analysis.get("loves"):
-            parts.append(f"Что нравится: {', '.join(analysis['loves'])}")
-        if analysis.get("dislikes"):
-            parts.append(f"Что не нравится: {', '.join(analysis['dislikes'])}")
-        if analysis.get("summary"):
-            parts.append(f"Общее: {analysis['summary']}")
-
-        return "\n".join(parts)
+        Градации:
+        - 0.85+ : очень высокая близость
+        - 0.75+ : высокая близость
+        - 0.65+ : средняя близость
+        - ниже : слабая близость
+        """
+        if score >= 0.85:
+            return "Очень близка к вашим любимым книгам — высокое совпадение по стилю и темам"
+        elif score >= 0.75:
+            return "Совпадает с вашим вкусом по темам и настроению"
+        elif score >= 0.65:
+            return "Может вам понравиться — есть общие мотивы с прочитанным"
+        else:
+            return "Интересная книга в вашем направлении"
 
     @staticmethod
     def _average_embeddings(embeddings: list[list[float]]) -> list[float]:
         """
-        Усреднить эмбеддинги покомпонентно.
+        Усреднить эмбеддинги покомпонентно (pure Python, без numpy).
 
         Args:
             embeddings: [[0.1, 0.2, ...], [0.3, 0.4, ...], ...] — N × dim
@@ -231,7 +151,12 @@ class RecommendationService:
         if not embeddings:
             raise ValueError("No embeddings to average")
 
-        import numpy as np
-        arr = np.array(embeddings)              # shape (N, dim)
-        avg = np.mean(arr, axis=0)              # (dim,)
-        return avg.tolist()
+        n = len(embeddings)
+        dim = len(embeddings[0])
+
+        result = [0.0] * dim
+        for emb in embeddings:
+            for i, val in enumerate(emb):
+                result[i] += val
+
+        return [x / n for x in result]
