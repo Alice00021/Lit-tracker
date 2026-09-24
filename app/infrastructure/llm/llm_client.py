@@ -50,3 +50,25 @@ class LLMClient:
         except httpx.HTTPError as e:
             logger.error(f"Ollama HTTP error: {e}")
             raise ServiceError(f"Failed to call Ollama: {str(e)}")
+
+    async def _call_llm(
+            self,
+            prompt: str,
+            system: str = "Ты литературный критик. Отвечай только JSON.",
+    ) -> str:
+        """Универсальный вызов LLM (для внутренних нужд)."""
+
+        async with httpx.AsyncClient(timeout=180.0) as client:
+            response = await client.post(
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "system": system,
+                    "stream": False,
+                    "format": "json",
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["response"]

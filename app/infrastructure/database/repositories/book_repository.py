@@ -91,3 +91,46 @@ class SqlAlchemyBookRepository(IBookRepository):
         stmt = select(func.count()).select_from(BookModel).where(BookModel.deleted_at.is_(None))
         result = await self.session.execute(stmt)
         return result.scalar_one()
+
+
+
+    async def find_similar_by_embedding(
+            self,
+            embedding: list[float],
+            exclude_book_ids: list[int],
+            limit: int = 10,
+            min_similarity: float = 0.5,
+    ) -> list[tuple[BookEntity, float]]:
+        """
+        Найти похожие книги по эмбеддингу.
+
+        """
+        # cosine_distance = 1 - cosine_similarity
+        distance = BookModel.embedding.cosine_distance(embedding).label("distance")
+
+        stmt = (
+            select(BookModel, distance)
+            .where(
+                BookModel.deleted_at.is_(None),
+                BookModel.embedding.isnot(None),
+            )
+        )
+
+        if exclude_book_ids:
+            stmt = stmt.where(BookModel.id.notin_(exclude_book_ids))
+
+        stmt = (
+            stmt
+            .order_by(distance)
+            .limit(limit * 2)  # берём с запасом для фильтра
+        )
+
+        result = await self.session.execute(stmt)
+
+        books_with_scores = []
+        for model, dist in result.all():
+            similarity = 1 - dist  # cosine similarity
+            if similarity >= min_similarity:
+                books_with_scores.append((self._to_entity(model), similarity))
+
+        return books_with_scores[:limit]

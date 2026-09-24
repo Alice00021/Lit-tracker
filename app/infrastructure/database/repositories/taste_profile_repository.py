@@ -18,6 +18,8 @@ class SqlAlchemyTasteProfileRepository(ITasteProfileRepository):
             user_id=model.user_id,
             analysis=model.analysis,
             entries_count=model.entries_count,
+            status=model.status,
+            error=model.error,
             created_at=model.created_at,
             updated_at=model.updated_at,
             deleted_at=model.deleted_at,
@@ -43,12 +45,16 @@ class SqlAlchemyTasteProfileRepository(ITasteProfileRepository):
                 user_id=profile.user_id,
                 analysis=profile.analysis,
                 entries_count=profile.entries_count,
+                status=profile.status,
+                error=profile.error,
             )
             .on_conflict_do_update(
                 index_elements=["user_id"],
                 set_={
                     "analysis": profile.analysis,
                     "entries_count": profile.entries_count,
+                    "status": profile.status,
+                    "error": profile.error,
                 },
             )
             .returning(TasteProfileModel)

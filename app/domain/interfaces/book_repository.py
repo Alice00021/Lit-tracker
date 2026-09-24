@@ -21,3 +21,12 @@ class IBookRepository(ABC):
 
     @abstractmethod
     async def count(self) -> int: ...
+
+    @abstractmethod
+    async def find_similar_by_embedding(
+            self,
+            embedding: list[float],
+            exclude_book_ids: list[int],
+            limit: int = 10,
+            min_similarity: float = 0.5,
+    ) -> list[tuple[BookEntity, float]]: ...

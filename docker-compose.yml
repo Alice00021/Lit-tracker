@@ -25,7 +25,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/lit_tracker
       REDIS_URL: redis://redis:6379/0
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_BASE_URL: http://192.168.1.100:11434
       HOST: 0.0.0.0
       PORT: 8001
       RELOAD: "false"
@@ -53,7 +53,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/lit_tracker
       REDIS_URL: redis://redis:6379/0
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_BASE_URL: http://192.168.1.100:11434
       HOST: 0.0.0.0
       PORT: 8001
       RELOAD: "false"
@@ -73,12 +73,14 @@ services:
     container_name: lit-tracker-nginx
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8080:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - app1
-      - app2
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
     networks:
       - lit-tracker
 

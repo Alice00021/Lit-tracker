@@ -1,5 +1,6 @@
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.application.services.recommendation_service import RecommendationService
 
 from app.core.database import get_session
 from app.infrastructure.database.repositories.book_repository import (
@@ -76,3 +77,11 @@ async def get_taste_profile_service(
         llm_client: LLMClient = Depends(get_llm_client),
 ) -> TasteProfileService:
     return TasteProfileService(profile_repo, entry_repo, llm_client)
+
+async def get_recommendation_service(
+        book_repo: IBookRepository = Depends(get_book_repository),
+        entry_repo: IReadingEntryRepository = Depends(get_reading_entry_repository),
+        profile_repo: ITasteProfileRepository = Depends(get_taste_profile_repository),
+        llm_client: LLMClient = Depends(get_llm_client),
+) -> RecommendationService:
+    return RecommendationService(book_repo, entry_repo, profile_repo, llm_client)
