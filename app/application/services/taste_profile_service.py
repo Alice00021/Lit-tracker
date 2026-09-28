@@ -3,6 +3,9 @@ from app.domain.interfaces.taste_profile_repository import ITasteProfileReposito
 from app.domain.interfaces.reading_entry_repository import IReadingEntryRepository
 from app.domain.exceptions import NotFoundError
 from app.infrastructure.llm.llm_client import LLMClient
+from app.infrastructure.llm.langgraph.graph import taste_profile_graph
+from app.infrastructure.llm.langgraph.state import TasteProfileState
+
 from common import get_logger
 
 logger = get_logger(__name__)
@@ -32,30 +35,30 @@ class TasteProfileService:
         return await self.profile_repo.upsert(profile)
 
     async def run_analysis(self, user_id: int) -> None:
-        """Выполнить анализ (background task)."""
-        logger.info(f"Running analysis for user {user_id}")
+        """
+        Запустить анализ через LangGraph.
+        """
+        logger.info(f"Running analysis for user {user_id} via LangGraph")
+
+        initial_state: TasteProfileState = {
+            "user_id": user_id,
+            "notes": [],
+            "analysis": None,
+            "error": None,
+            "retry_count": 0,
+            "max_retries": 3,
+            "status": "pending",
+            "entries_count": 0,
+        }
 
         try:
-            await self.profile_repo.update_status(user_id, "processing")
-
-            entries = await self.entry_repo.get_by_user_id(user_id, limit=1000)
-            notes = [e.note for e in entries]
-
-            analysis = await self.llm_client.analyze_taste(notes)
-
-            profile = TasteProfileEntity(
-                id=None,
-                user_id=user_id,
-                analysis=analysis,
-                entries_count=len(notes),
-                status="done",
-                error=None,
+            final_state = await taste_profile_graph.ainvoke(initial_state)
+            logger.info(
+                f"Graph finished: status={final_state['status']}, "
+                f"retries={final_state['retry_count']}"
             )
-            await self.profile_repo.upsert(profile)
-            logger.info(f"Analysis done for user {user_id}")
-
         except Exception as e:
-            logger.error(f"Analysis failed: {e}")
+            logger.error(f"Graph failed: {e}")
             await self.profile_repo.update_status(user_id, "failed", str(e))
 
     async def get_profile(self, user_id: int) -> TasteProfileEntity:
