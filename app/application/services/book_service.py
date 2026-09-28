@@ -2,6 +2,9 @@ from app.domain.interfaces.book_repository import IBookRepository
 from app.domain.entities.book import BookEntity
 from app.domain.exceptions import NotFoundError
 from app.interfaces.schemas.book import BookCreateSchema, BookUpdateSchema
+from common import RedisCache, get_logger
+
+logger = get_logger(__name__)
 
 
 class BookService:
@@ -16,6 +19,10 @@ class BookService:
             id=None, title=data.title, author=data.author,
             description=data.description, embedding=embedding,
         )
+        # Инвалидация smart search кэша
+        await self.search_cache.clear_prefix()
+        logger.info("Smart search cache invalidated")
+
         return await self.repo.create(book)
 
     async def get_book(self, id: int) -> BookEntity:
@@ -32,10 +39,20 @@ class BookService:
             book.author = data.author
         if data.description is not None:
             book.description = data.description
+
+        # Инвалидация smart search кэша
+        await self.search_cache.clear_prefix()
+        logger.info("Smart search cache invalidated")
+
         return await self.repo.update(book)
 
     async def delete_book(self, id: int) -> None:
         await self.get_book(id)
+
+        # Инвалидация smart search кэша
+        await self.search_cache.clear_prefix()
+        logger.info("Smart search cache invalidated")
+
         await self.repo.soft_delete(id)
 
     async def list_books(self, page: int, page_size: int) -> dict:

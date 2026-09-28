@@ -43,3 +43,6 @@ class EmbeddingClient:
         except Exception as e:
             logger.error(f"Embedding error: {e}")
             raise ServiceError(f"Failed to generate embedding: {str(e)}")
+
+
+embedding_service = EmbeddingClient()
