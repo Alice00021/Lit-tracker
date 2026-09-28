@@ -28,7 +28,7 @@ redis>=5.0.0
 prometheus-fastapi-instrumentator>=7.0.0
 prometheus-client>=0.21.0
 
-# Тесты
+# Testing
 pytest>=8.3.0
 pytest-asyncio>=0.24.0
 pytest-cov>=6.0.0
