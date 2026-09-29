@@ -2,13 +2,12 @@
 Unit-тесты для RecommendationService.
 """
 import pytest
+from common.exceptions import NotFoundError
 
 from app.application.services.recommendation_service import RecommendationService
 from app.domain.entities.book import BookEntity
 from app.domain.entities.reading_entry import ReadingEntryEntity
 from app.domain.entities.taste_profile import TasteProfileEntity
-from common.exceptions import NotFoundError
-
 
 # Fakes
 

@@ -1,5 +1,6 @@
 from common import RedisCache
-from fastapi import HTTPException, Request, status
+from fastapi import Request, status
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
@@ -30,9 +31,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         count = await self.cache.incr(key, ttl=self.window)
 
         if count > self.limit:
-            raise HTTPException(
+            # HTTPException из middleware FastAPI не превращает в ответ (вышло бы 500),
+            # поэтому возвращаем 429 напрямую.
+            return JSONResponse(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Rate limit exceeded",
+                content={"detail": "Rate limit exceeded"},
+                headers={"Retry-After": str(self.window)},
             )
 
         response = await call_next(request)

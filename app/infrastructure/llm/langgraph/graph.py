@@ -18,10 +18,13 @@ def should_retry(state: TasteProfileState) -> str:
     Returns:
         - "save" — если валидно
         - "retry" — если есть ошибка и попытки остались
-        - "fail" — если попытки кончились
+        - "fail" — если попытки кончились или повтор бессмыслен
     """
     if state.get("error") is None:
         return "save"
+
+    if not state.get("retryable", True):
+        return "fail"
 
     if state["retry_count"] >= state["max_retries"]:
         return "fail"

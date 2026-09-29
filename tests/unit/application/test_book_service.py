@@ -3,15 +3,15 @@ Unit-тесты для BookService.
 
 Используем fake-репозиторий — не нужна реальная БД.
 """
-import pytest
 from datetime import datetime, timezone
 from typing import Optional
+
+import pytest
+from common.exceptions import NotFoundError
 
 from app.application.services.book_service import BookService
 from app.domain.entities.book import BookEntity
 from app.interfaces.schemas.book import BookCreateSchema, BookUpdateSchema
-from common.exceptions import NotFoundError
-
 
 # Fakes
 

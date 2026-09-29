@@ -1,5 +1,6 @@
 from common import get_logger
 
+from app.core.config import settings
 from app.domain.entities.taste_profile import TasteProfileEntity
 from app.domain.exceptions import NotFoundError
 from app.domain.interfaces.reading_entry_repository import IReadingEntryRepository
@@ -45,8 +46,10 @@ class TasteProfileService:
             "notes": [],
             "analysis": None,
             "error": None,
+            "retryable": True,
+            "feedback": None,
             "retry_count": 0,
-            "max_retries": 3,
+            "max_retries": settings.TASTE_MAX_RETRIES,
             "status": "pending",
             "entries_count": 0,
         }

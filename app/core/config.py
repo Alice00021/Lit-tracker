@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     # LangChain
     LANGCHAIN_TRACING_V2: bool = False
 
+    # Taste profile (LangGraph retry)
+    TASTE_MAX_RETRIES: int = 3
+    TASTE_RETRY_BACKOFF_SECONDS: float = 1.0
+
     # Rate limit
     RATE_LIMIT_REQUESTS: int = 100
     RATE_LIMIT_WINDOW: int = 60
