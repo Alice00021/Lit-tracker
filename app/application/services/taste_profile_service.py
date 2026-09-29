@@ -1,12 +1,12 @@
+from common import get_logger
+
 from app.domain.entities.taste_profile import TasteProfileEntity
-from app.domain.interfaces.taste_profile_repository import ITasteProfileRepository
-from app.domain.interfaces.reading_entry_repository import IReadingEntryRepository
 from app.domain.exceptions import NotFoundError
-from app.infrastructure.llm.llm_client import LLMClient
+from app.domain.interfaces.reading_entry_repository import IReadingEntryRepository
+from app.domain.interfaces.taste_profile_repository import ITasteProfileRepository
 from app.infrastructure.llm.langgraph.graph import taste_profile_graph
 from app.infrastructure.llm.langgraph.state import TasteProfileState
-
-from common import get_logger
+from app.infrastructure.llm.llm_client import LLMClient
 
 logger = get_logger(__name__)
 

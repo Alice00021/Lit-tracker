@@ -1,7 +1,8 @@
-from sqlalchemy import Column, String, Text
 from pgvector.sqlalchemy import Vector
-from app.models.base import BaseModel
+from sqlalchemy import Column, String, Text
+
 from app.core.config import settings
+from app.models.base import BaseModel
 
 
 class Book(BaseModel):

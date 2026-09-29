@@ -1,22 +1,22 @@
 import os
 from contextlib import asynccontextmanager
+
+from common import (
+    RequestIDMiddleware,
+    close_redis,
+    get_logger,
+    init_redis,
+    setup_cors,
+    setup_logging,
+)
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from common import (
-    setup_logging,
-    get_logger,
-    setup_cors,
-    init_redis,
-    close_redis,
-    RequestIDMiddleware,
-)
 from app.core.config import settings
 from app.core.database import engine
-from app.interfaces.api import api_router
 from app.domain.exceptions import NotFoundError
-
+from app.interfaces.api import api_router
 from app.interfaces.api.middlewares.rate_limit import RateLimitMiddleware
 
 setup_logging(
@@ -58,7 +58,12 @@ app.include_router(api_router)
 # Метрики
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
-app.add_middleware(RateLimitMiddleware, limit=100, window=60)
+app.add_middleware(
+    RateLimitMiddleware,
+    limit=settings.RATE_LIMIT_REQUESTS,
+    window=settings.RATE_LIMIT_WINDOW,
+)
+app.add_middleware(RequestIDMiddleware)
 
 
 @app.exception_handler(NotFoundError)

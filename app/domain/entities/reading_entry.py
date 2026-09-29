@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from datetime import datetime, date
+from datetime import date, datetime
 from typing import Optional
+
 from app.domain.entities.book import BookEntity
 
 

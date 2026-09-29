@@ -1,5 +1,5 @@
+
 from common import BaseSettings
-from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -14,5 +14,9 @@ class Settings(BaseSettings):
 
     # LangChain
     LANGCHAIN_TRACING_V2: bool = False
+
+    # Rate limit
+    RATE_LIMIT_REQUESTS: int = 100
+    RATE_LIMIT_WINDOW: int = 60
 
 settings = Settings()

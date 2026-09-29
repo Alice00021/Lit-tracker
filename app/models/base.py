@@ -1,8 +1,9 @@
-from sqlalchemy import Column, Integer, DateTime
-from sqlalchemy.sql import func
-from sqlalchemy.ext.declarative import declared_attr
 from datetime import datetime
-from app.core.database import Base
+
+from common import Base
+from sqlalchemy import Column, DateTime, Integer
+from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.sql import func
 
 
 class BaseModel(Base):

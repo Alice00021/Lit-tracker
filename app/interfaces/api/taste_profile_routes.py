@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 
 from app.application.services.taste_profile_service import TasteProfileService
+from app.domain.exceptions import NotFoundError
 from app.interfaces.api.dependencies import get_taste_profile_service
 from app.interfaces.schemas.taste_profile import TasteProfileReadSchema
-from app.domain.exceptions import NotFoundError
 
 router = APIRouter(prefix="/taste-profile", tags=["taste-profile"])
 

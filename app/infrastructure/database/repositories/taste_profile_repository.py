@@ -1,7 +1,8 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
+
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
-from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities.taste_profile import TasteProfileEntity
 from app.domain.interfaces.taste_profile_repository import ITasteProfileRepository

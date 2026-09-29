@@ -1,8 +1,9 @@
-from sqlalchemy import Column, Integer, Text, ForeignKey, Date
-from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
-from app.models.base import BaseModel
+from sqlalchemy import Column, Date, ForeignKey, Integer, Text
+from sqlalchemy.orm import relationship
+
 from app.core.config import settings
+from app.models.base import BaseModel
 
 
 class ReadingEntry(BaseModel):

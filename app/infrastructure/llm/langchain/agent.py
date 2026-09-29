@@ -3,13 +3,13 @@ LangChain agent для умного поиска книг.
 
 Использует LangChain 1.x API (create_agent).
 """
-from langchain_ollama import ChatOllama
+from common import get_logger
 from langchain.agents import create_agent
+from langchain_ollama import ChatOllama
 
 from app.core.config import settings
 from app.infrastructure.llm.langchain.tools import ALL_TOOLS
 from app.infrastructure.llm.prompts import SMART_SEARCH_SYSTEM_PROMPT
-from common import get_logger
 
 logger = get_logger(__name__)
 

@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from app.interfaces.schemas.book import BookCreateSchema, BookUpdateSchema, BookReadSchema, BookPaginatedSchema
+
 from app.application.services.book_service import BookService
-from app.interfaces.api.dependencies import get_book_service
 from app.domain.exceptions import NotFoundError
+from app.interfaces.api.dependencies import get_book_service
+from app.interfaces.schemas.book import BookCreateSchema, BookPaginatedSchema, BookReadSchema, BookUpdateSchema
 
 router = APIRouter(prefix="/books", tags=["books"])
 

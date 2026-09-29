@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.application.services.recommendation_service import RecommendationService
+from app.domain.exceptions import NotFoundError
 from app.interfaces.api.dependencies import get_recommendation_service
 from app.interfaces.schemas.recommendation import RecommendationsResponseSchema
-from app.domain.exceptions import NotFoundError
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
