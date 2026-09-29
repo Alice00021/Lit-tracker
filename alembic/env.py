@@ -18,6 +18,10 @@ from common import Base
 from app.models import User, Book, ReadingEntry
 config = context.config
 
+# Адрес БД берём из настроек (переменная DATABASE_URL), а не из alembic.ini —
+# иначе в Docker миграции пойдут на localhost вместо контейнера postgres.
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
+
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
