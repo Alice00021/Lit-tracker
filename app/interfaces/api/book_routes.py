@@ -32,17 +32,17 @@ async def get_book(book_id: int, service: BookService = Depends(get_book_service
 
 
 @router.patch("/{book_id}", response_model=BookReadSchema)
-async def update_book(id: int, data: BookUpdateSchema, service: BookService = Depends(get_book_service)):
+async def update_book(book_id: int, data: BookUpdateSchema, service: BookService = Depends(get_book_service)):
     try:
-        book = await service.update_book(id, data)
+        book = await service.update_book(book_id, data)
         return BookReadSchema.model_validate(book, from_attributes=True)
     except NotFoundError as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_book(id: int, service: BookService = Depends(get_book_service)):
+async def delete_book(book_id: int, service: BookService = Depends(get_book_service)):
     try:
-        await service.delete_book(id)
+        await service.delete_book(book_id)
     except NotFoundError as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))

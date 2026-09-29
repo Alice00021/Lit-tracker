@@ -8,9 +8,10 @@ logger = get_logger(__name__)
 
 
 class BookService:
-    def __init__(self, repo: IBookRepository, embedding_client):
+    def __init__(self, repo: IBookRepository, embedding_client, search_cache: RedisCache):
         self.repo = repo
         self.embedding_client = embedding_client
+        self.search_cache = search_cache
 
     async def create_book(self, data: BookCreateSchema) -> BookEntity:
         text = f"{data.title} {data.author} {data.description or ''}"
@@ -62,5 +63,5 @@ class BookService:
         return {
             "items": items, "total": total, "page": page,
             "page_size": page_size,
-            "total_pages": (total + page_size - 1)
+            "total_pages": (total + page_size - 1) // page_size if total > 0 else 0,
         }

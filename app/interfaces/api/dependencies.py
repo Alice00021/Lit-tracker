@@ -14,6 +14,7 @@ from app.infrastructure.database.repositories.taste_profile_repository import (
 )
 from app.infrastructure.llm.embedding_client import EmbeddingClient
 from app.infrastructure.llm.llm_client import LLMClient
+from common import RedisCache
 
 from app.domain.interfaces.book_repository import IBookRepository
 from app.domain.interfaces.reading_entry_repository import IReadingEntryRepository
@@ -56,11 +57,16 @@ async def get_llm_client() -> LLMClient:
 
 # Services
 
+async def get_search_cache() -> RedisCache:
+    return RedisCache(prefix="search", default_ttl=3600)
+
+
 async def get_book_service(
         book_repo: IBookRepository = Depends(get_book_repository),
         embedding_client: EmbeddingClient = Depends(get_embedding_client),
+        search_cache: RedisCache = Depends(get_search_cache),
 ) -> BookService:
-    return BookService(book_repo, embedding_client)
+    return BookService(book_repo, embedding_client, search_cache)
 
 
 async def get_reading_entry_service(

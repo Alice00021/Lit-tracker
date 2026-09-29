@@ -55,6 +55,16 @@ class FakeEmbeddingClient:
         return [0.1] * 768
 
 
+class FakeSearchCache:
+    """Fake search cache — считает инвалидации, не трогает Redis."""
+
+    def __init__(self):
+        self.cleared_count = 0
+
+    async def clear_prefix(self) -> None:
+        self.cleared_count += 1
+
+
 # ============ Fixtures ============
 
 @pytest.fixture
@@ -68,8 +78,13 @@ def fake_embedding():
 
 
 @pytest.fixture
-def service(fake_repo, fake_embedding):
-    return BookService(fake_repo, fake_embedding)
+def fake_search_cache():
+    return FakeSearchCache()
+
+
+@pytest.fixture
+def service(fake_repo, fake_embedding, fake_search_cache):
+    return BookService(fake_repo, fake_embedding, fake_search_cache)
 
 
 # ============ Helpers ============
@@ -227,9 +242,16 @@ class TestBookServiceList:
 
         page1 = await service.list_books(page=1, page_size=10)
         assert len(page1["items"]) == 10
+        assert page1["total_pages"] == 3
 
         page2 = await service.list_books(page=2, page_size=10)
         assert len(page2["items"]) == 10
 
         page3 = await service.list_books(page=3, page_size=10)
         assert len(page3["items"]) == 5
+
+    @pytest.mark.asyncio
+    async def test_list_total_pages_is_zero_when_empty(self, service):
+        """total_pages не должен ломаться делением, когда книг нет."""
+        result = await service.list_books(page=1, page_size=10)
+        assert result["total_pages"] == 0

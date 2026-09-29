@@ -10,12 +10,21 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.window = window
         self.cache = RedisCache(prefix="rate")
 
+    @staticmethod
+    def _client_ip(request: Request) -> str:
+        # За nginx request.client.host — это IP самого nginx, а не юзера.
+        # Nginx кладёт реальный IP в X-Forwarded-For (см. nginx/nginx.conf).
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            return forwarded_for.split(",")[0].strip()
+        return request.client.host if request.client else "unknown"
+
     async def dispatch(self, request: Request, call_next):
         # Пропускаем служебные
         if request.url.path in ["/docs", "/redoc", "/openapi.json", "/metrics"]:
             return await call_next(request)
 
-        client_ip = request.client.host if request.client else "unknown"
+        client_ip = self._client_ip(request)
         key = f"{client_ip}:{request.url.path}"
 
         count = await self.cache.incr(key, ttl=self.window)
