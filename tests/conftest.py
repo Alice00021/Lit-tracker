@@ -1,13 +1,13 @@
 """
 Общие fixtures для всех тестов.
 """
-import pytest
 import asyncio
 from typing import AsyncGenerator, Generator
-from httpx import AsyncClient, ASGITransport
+
+import pytest
+from httpx import ASGITransport, AsyncClient
 
 from app.main import app
-
 
 # ============ Event Loop ============
 

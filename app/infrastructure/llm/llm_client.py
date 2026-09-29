@@ -18,7 +18,9 @@ class LLMClient:
         self.model = settings.OLLAMA_LLM_MODEL
         logger.info(f"✅ LLMClient (Ollama): {self.model}")
 
-    async def analyze_taste(self, notes: List[str]) -> Dict[str, Any]:
+    async def analyze_taste(
+        self, notes: List[str], feedback: str | None = None
+    ) -> Dict[str, Any]:
         """Проанализировать вкус пользователя по заметкам."""
         if not notes:
             return {
@@ -29,7 +31,7 @@ class LLMClient:
                 "summary": "Недостаточно данных для анализа",
             }
 
-        prompt = build_taste_prompt(notes)
+        prompt = build_taste_prompt(notes, feedback)
 
         try:
             async with httpx.AsyncClient(timeout=180.0) as client:

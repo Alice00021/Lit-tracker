@@ -11,6 +11,8 @@ class TasteProfileState(TypedDict):
     notes: list[str]
     analysis: Optional[dict]
     error: Optional[str]
+    retryable: bool     # False — повтор не поможет (например, нет заметок)
+    feedback: Optional[str]  # что не так с прошлой попыткой — уходит в промпт
     retry_count: int
     max_retries: int
 

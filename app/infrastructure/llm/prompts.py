@@ -16,9 +16,20 @@ TASTE_ANALYSIS_PROMPT = """Проанализируй читательский �
 """
 
 
-def build_taste_prompt(notes: list[str]) -> str:
+RETRY_FEEDBACK_TEMPLATE = """
+ВАЖНО: предыдущий ответ не подошёл: {feedback}.
+Верни ВАЛИДНЫЙ JSON со ВСЕМИ полями themes, style, loves, dislikes, summary.
+Поля themes, style и summary не должны быть пустыми.
+"""
+
+
+def build_taste_prompt(notes: list[str], feedback: str | None = None) -> str:
+    """Собрать промпт. Если это повторная попытка — добавляем, что было не так."""
     notes_text = "\n".join(f"- {n}" for n in notes)
-    return TASTE_ANALYSIS_PROMPT.format(notes=notes_text)
+    prompt = TASTE_ANALYSIS_PROMPT.format(notes=notes_text)
+    if feedback:
+        prompt += RETRY_FEEDBACK_TEMPLATE.format(feedback=feedback)
+    return prompt
 
 
 # SMART SEARCH AGENT

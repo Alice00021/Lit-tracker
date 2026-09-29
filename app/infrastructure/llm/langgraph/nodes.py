@@ -1,5 +1,8 @@
+import asyncio
+
 from common import get_logger
 
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.infrastructure.database.repositories.reading_entry_repository import (
     SqlAlchemyReadingEntryRepository,
@@ -40,11 +43,12 @@ async def analyze_taste(state: TasteProfileState) -> TasteProfileState:
             **state,
             "analysis": None,
             "error": "No notes to analyze",
+            "retryable": False,  # заметок не станет больше от повтора
         }
 
     try:
         llm = LLMClient()
-        analysis = await llm.analyze_taste(state["notes"])
+        analysis = await llm.analyze_taste(state["notes"], state.get("feedback"))
 
         return {
             **state,
@@ -68,7 +72,8 @@ async def validate_analysis(state: TasteProfileState) -> TasteProfileState:
     analysis = state.get("analysis")
 
     if not analysis:
-        return {**state, "error": "No analysis"}
+        # Если analyze_taste уже записал причину (timeout и т.п.) — не затираем её
+        return {**state, "error": state.get("error") or "No analysis"}
 
     # Проверяем обязательные поля
     required = ["themes", "style", "summary"]
@@ -84,12 +89,17 @@ async def validate_analysis(state: TasteProfileState) -> TasteProfileState:
 
 
 async def retry_analysis(state: TasteProfileState) -> TasteProfileState:
-    """Узел 4: Retry с уточнённым промптом."""
-    logger.info(f"[retry_analysis] attempt={state['retry_count'] + 1}")
+    """Узел 4: пауза (backoff) и подготовка уточнённого промпта."""
+    attempt = state["retry_count"] + 1
+    logger.info(f"[retry_analysis] attempt={attempt}, reason={state['error']}")
+
+    # Пауза растёт с каждой попыткой: 1с, 2с, 3с... — даём Ollama прийти в себя
+    await asyncio.sleep(settings.TASTE_RETRY_BACKOFF_SECONDS * attempt)
 
     return {
         **state,
-        "retry_count": state["retry_count"] + 1,
+        "retry_count": attempt,
+        "feedback": state["error"],  # в следующем промпте скажем LLM, что было не так
         "analysis": None,
         "error": None,
     }
