@@ -14,8 +14,8 @@ logger = get_logger(__name__)
 class SmartSearchService:
     """Сервис умного поиска с кэшем."""
 
-    def __init__(self):
-        self.cache = RedisCache(prefix="search", default_ttl=3600)
+    def __init__(self, cache: RedisCache):
+        self.cache = cache
 
     def _normalize_query(self, query: str) -> str:
         """Нормализация запроса."""

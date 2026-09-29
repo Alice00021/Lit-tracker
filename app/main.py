@@ -4,9 +4,16 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from common import setup_logging, get_logger, setup_cors, init_redis, close_redis
+from common import (
+    setup_logging,
+    get_logger,
+    setup_cors,
+    init_redis,
+    close_redis,
+    RequestIDMiddleware,
+)
 from app.core.config import settings
-from app.core.database import init_db, engine
+from app.core.database import engine
 from app.interfaces.api import api_router
 from app.domain.exceptions import NotFoundError
 
@@ -24,7 +31,6 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.SERVICE_NAME}")
-    await init_db()
 
     # Redis
     await init_redis(settings.REDIS_URL)
@@ -32,6 +38,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    await close_redis()
     await engine.dispose()
     logger.info("Shutdown")
 

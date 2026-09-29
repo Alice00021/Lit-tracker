@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     AsyncSession,
 )
-from common import Base
 from app.core.config import settings
 
 # Движок БД
@@ -40,11 +39,3 @@ async def get_session() -> AsyncSession:
             raise
         finally:
             await session.close()
-
-
-async def init_db():
-    """Создать таблицы (для разработки)."""
-    from app.models import User, Book, ReadingEntry  # noqa: F401
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)

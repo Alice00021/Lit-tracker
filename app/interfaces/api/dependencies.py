@@ -23,6 +23,7 @@ from app.domain.interfaces.taste_profile_repository import ITasteProfileReposito
 from app.application.services.book_service import BookService
 from app.application.services.reading_entry_service import ReadingEntryService
 from app.application.services.taste_profile_service import TasteProfileService
+from app.application.services.smart_search_service import SmartSearchService
 
 
 # Repositories
@@ -90,3 +91,9 @@ async def get_recommendation_service(
         profile_repo: ITasteProfileRepository = Depends(get_taste_profile_repository),
 ) -> RecommendationService:
     return RecommendationService(book_repo, entry_repo, profile_repo)
+
+
+async def get_smart_search_service(
+        search_cache: RedisCache = Depends(get_search_cache),
+) -> SmartSearchService:
+    return SmartSearchService(search_cache)
