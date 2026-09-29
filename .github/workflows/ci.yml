@@ -93,8 +93,16 @@ jobs:
     needs: [lint, test]
 
     steps:
-      - name: Checkout code
+      - name: Checkout lit-tracker
         uses: actions/checkout@v4
+        with:
+          path: lit-tracker
+
+      - name: Checkout common-service
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/common-service
+          path: common-service
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -103,6 +111,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: lit-tracker/Dockerfile
           push: false
           tags: lit-tracker:test
           cache-from: type=gha
