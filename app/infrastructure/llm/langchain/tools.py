@@ -4,14 +4,14 @@ LangChain tools для агента.
 Каждый tool — функция, которую LLM может вызвать.
 Обёрнута через @tool для LangChain.
 """
+from common import get_logger
 from langchain_core.tools import tool
 
+from app.core.database import AsyncSessionLocal
 from app.infrastructure.database.repositories.book_repository import (
     SqlAlchemyBookRepository,
 )
 from app.infrastructure.llm.embedding_client import embedding_service
-from app.core.database import AsyncSessionLocal
-from common import get_logger
 
 logger = get_logger(__name__)
 

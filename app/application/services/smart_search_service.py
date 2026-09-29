@@ -2,6 +2,7 @@ import hashlib
 import re
 
 from common import RedisCache, get_logger
+
 from app.infrastructure.llm.langchain.agent import smart_search_agent
 from app.interfaces.schemas.smart_search import (
     SmartSearchRequest,

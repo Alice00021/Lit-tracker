@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.application.services.reading_entry_service import ReadingEntryService
+from app.domain.exceptions import NotFoundError
 from app.interfaces.api.dependencies import get_reading_entry_service
 from app.interfaces.schemas.reading_entry import (
     ReadingEntryCreateSchema,
-    ReadingEntryUpdateSchema,
-    ReadingEntryReadSchema,
     ReadingEntryPaginatedSchema,
+    ReadingEntryReadSchema,
+    ReadingEntryUpdateSchema,
 )
-from app.domain.exceptions import NotFoundError
 
 router = APIRouter(prefix="/books", tags=["reading-entries"])
 

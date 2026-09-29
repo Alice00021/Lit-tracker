@@ -1,6 +1,8 @@
-from pydantic import BaseModel, ConfigDict, Field
+from datetime import date, datetime
 from typing import Optional
-from datetime import datetime, date
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from app.interfaces.schemas.book import BookReadSchema
 
 

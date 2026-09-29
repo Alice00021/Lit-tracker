@@ -1,3 +1,4 @@
+from common import get_logger
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.application.services.smart_search_service import SmartSearchService
@@ -6,7 +7,6 @@ from app.interfaces.schemas.smart_search import (
     SmartSearchRequest,
     SmartSearchResponse,
 )
-from common import get_logger
 
 logger = get_logger(__name__)
 

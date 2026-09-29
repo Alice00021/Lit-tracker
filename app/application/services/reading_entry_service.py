@@ -1,15 +1,14 @@
-from typing import Optional
+from common import get_logger
+
 from app.domain.entities.reading_entry import ReadingEntryEntity
-from app.domain.entities.book import BookEntity
-from app.domain.interfaces.reading_entry_repository import IReadingEntryRepository
-from app.domain.interfaces.book_repository import IBookRepository
 from app.domain.exceptions import NotFoundError
+from app.domain.interfaces.book_repository import IBookRepository
+from app.domain.interfaces.reading_entry_repository import IReadingEntryRepository
 from app.infrastructure.llm.embedding_client import EmbeddingClient
 from app.interfaces.schemas.reading_entry import (
     ReadingEntryCreateSchema,
     ReadingEntryUpdateSchema,
 )
-from common import get_logger
 
 logger = get_logger(__name__)
 
@@ -96,7 +95,7 @@ class ReadingEntryService:
 
         # Если заметка изменилась — пересчитать эмбеддинг
         if data.note is not None and data.note != entry.note:
-            logger.info(f"Note changed, re-generating embedding")
+            logger.info("Note changed, re-generating embedding")
             entry.note = data.note
             entry.note_embedding = await self.embedding_client.get_embedding(data.note)
 

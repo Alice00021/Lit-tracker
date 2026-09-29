@@ -1,9 +1,10 @@
+from common import get_logger
+from common.exceptions import NotFoundError
+
 from app.domain.entities.book import BookEntity
 from app.domain.interfaces.book_repository import IBookRepository
 from app.domain.interfaces.reading_entry_repository import IReadingEntryRepository
 from app.domain.interfaces.taste_profile_repository import ITasteProfileRepository
-from common.exceptions import NotFoundError
-from common import get_logger
 
 logger = get_logger(__name__)
 

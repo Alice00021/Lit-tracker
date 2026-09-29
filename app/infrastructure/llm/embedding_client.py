@@ -1,7 +1,9 @@
-import httpx
 from typing import List
+
+import httpx
+from common import ServiceError, get_logger
+
 from app.core.config import settings
-from common import get_logger, ServiceError
 
 logger = get_logger(__name__)
 

@@ -1,8 +1,10 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
 from app.domain.entities.reading_entry import ReadingEntryEntity
 from app.domain.interfaces.reading_entry_repository import IReadingEntryRepository
 from app.models.reading_entry import ReadingEntry as ReadingEntryModel

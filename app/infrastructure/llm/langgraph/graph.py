@@ -1,14 +1,14 @@
-from langgraph.graph import StateGraph, END
+from langgraph.graph import END, StateGraph
 
-from app.infrastructure.llm.langgraph.state import TasteProfileState
 from app.infrastructure.llm.langgraph.nodes import (
-    collect_notes,
     analyze_taste,
-    validate_analysis,
+    collect_notes,
+    fail_profile,
     retry_analysis,
     save_profile,
-    fail_profile,
+    validate_analysis,
 )
+from app.infrastructure.llm.langgraph.state import TasteProfileState
 
 
 def should_retry(state: TasteProfileState) -> str:

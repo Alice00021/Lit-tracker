@@ -1,4 +1,5 @@
-from typing import Any
+from common import get_logger
+
 from app.core.database import AsyncSessionLocal
 from app.infrastructure.database.repositories.reading_entry_repository import (
     SqlAlchemyReadingEntryRepository,
@@ -6,9 +7,8 @@ from app.infrastructure.database.repositories.reading_entry_repository import (
 from app.infrastructure.database.repositories.taste_profile_repository import (
     SqlAlchemyTasteProfileRepository,
 )
-from app.infrastructure.llm.llm_client import LLMClient
 from app.infrastructure.llm.langgraph.state import TasteProfileState
-from common import get_logger
+from app.infrastructure.llm.llm_client import LLMClient
 
 logger = get_logger(__name__)
 
@@ -63,7 +63,7 @@ async def analyze_taste(state: TasteProfileState) -> TasteProfileState:
 
 async def validate_analysis(state: TasteProfileState) -> TasteProfileState:
     """Узел 3: Проверка качества."""
-    logger.info(f"[validate_analysis]")
+    logger.info("[validate_analysis]")
 
     analysis = state.get("analysis")
 
