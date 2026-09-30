@@ -3,10 +3,11 @@ Seed-скрипт для создания тестовых данных.
 Запуск: python -m scripts.seed
 """
 import asyncio
+
 from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models import User
-
 
 TEST_USERS = [
     {
