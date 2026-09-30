@@ -1,5 +1,5 @@
 from common import RedisCache
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.services.book_service import BookService
@@ -76,11 +76,13 @@ async def get_reading_entry_service(
 
 
 async def get_taste_profile_service(
+        request: Request,
         profile_repo: ITasteProfileRepository = Depends(get_taste_profile_repository),
         entry_repo: IReadingEntryRepository = Depends(get_reading_entry_repository),
         llm_client: LLMClient = Depends(get_llm_client),
 ) -> TasteProfileService:
-    return TasteProfileService(profile_repo, entry_repo, llm_client)
+    graph = getattr(request.app.state, "taste_graph", None)
+    return TasteProfileService(profile_repo, entry_repo, llm_client, graph=graph)
 
 async def get_recommendation_service(
         book_repo: IBookRepository = Depends(get_book_repository),

@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     TASTE_MAX_RETRIES: int = 3
     TASTE_RETRY_BACKOFF_SECONDS: float = 1.0
 
+    # Taste profile (восстановление после рестарта)
+    # Запись pending/processing без движения дольше этого времени считается зависшей.
+    # Должно быть больше таймаута одного вызова LLM (180 с).
+    TASTE_STALE_AFTER_SECONDS: int = 300
+    TASTE_RECOVERY_INTERVAL_SECONDS: int = 60
+
     # Rate limit
     RATE_LIMIT_REQUESTS: int = 100
     RATE_LIMIT_WINDOW: int = 60

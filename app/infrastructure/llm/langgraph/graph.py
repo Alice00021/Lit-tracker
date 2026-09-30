@@ -32,8 +32,13 @@ def should_retry(state: TasteProfileState) -> str:
     return "retry"
 
 
-def build_taste_profile_graph():
-    """Собрать граф."""
+def build_taste_profile_graph(checkpointer=None):
+    """
+    Собрать граф.
+
+    checkpointer — если передан, состояние сохраняется после каждого узла,
+    и упавший/прерванный запуск можно продолжить с последнего шага.
+    """
     graph = StateGraph(TasteProfileState)
 
     # Добавляем узлы
@@ -66,6 +71,6 @@ def build_taste_profile_graph():
     graph.add_edge("save_profile", END)
     graph.add_edge("fail_profile", END)
 
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)
 
 taste_profile_graph = build_taste_profile_graph()

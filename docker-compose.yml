@@ -18,7 +18,7 @@ services:
       dockerfile: lit-tracker/Dockerfile
     container_name: lit-tracker-migrate
     restart: "no"
-    command: ["alembic", "upgrade", "head"]
+    command: ["sh", "-c", "alembic upgrade head && python -m scripts.setup_checkpointer"]
     env_file:
       - .env
     environment:

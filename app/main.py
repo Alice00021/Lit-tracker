@@ -1,3 +1,4 @@
+import asyncio
 import os
 from contextlib import asynccontextmanager
 
@@ -13,9 +14,12 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from app.application.services.taste_profile_service import recovery_loop
 from app.core.config import settings
 from app.core.database import engine
 from app.domain.exceptions import NotFoundError
+from app.infrastructure.llm.langgraph.checkpointer import open_checkpointer
+from app.infrastructure.llm.langgraph.graph import build_taste_profile_graph
 from app.interfaces.api import api_router
 from app.interfaces.api.middlewares.rate_limit import RateLimitMiddleware
 
@@ -36,7 +40,19 @@ async def lifespan(app: FastAPI):
     await init_redis(settings.REDIS_URL)
     logger.info(f"✅ Redis connected: {settings.REDIS_URL}")
 
-    yield
+    # Граф анализа вкуса с чекпоинтами в Postgres + подхват зависших анализов
+    async with open_checkpointer(settings.DATABASE_URL) as checkpointer:
+        app.state.taste_graph = build_taste_profile_graph(checkpointer)
+        recovery_tasks: set = set()
+        recovery = asyncio.create_task(recovery_loop(app.state.taste_graph, recovery_tasks))
+        logger.info("✅ Taste graph checkpointer ready")
+
+        yield
+
+        recovery.cancel()
+        for task in list(recovery_tasks):
+            task.cancel()  # чекпоинт остался на последнем узле, после рестарта продолжим
+        await asyncio.gather(recovery, *recovery_tasks, return_exceptions=True)
 
     await close_redis()
     await engine.dispose()

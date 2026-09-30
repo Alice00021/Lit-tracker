@@ -16,9 +16,21 @@ from app.infrastructure.llm.llm_client import LLMClient
 logger = get_logger(__name__)
 
 
+async def _heartbeat(user_id: int) -> None:
+    """Пометить анализ живым (свежий updated_at), чтобы его не приняли за зависший."""
+    try:
+        async with AsyncSessionLocal() as session:
+            await SqlAlchemyTasteProfileRepository(session).heartbeat(user_id)
+            await session.commit()
+    except Exception as e:
+        # heartbeat вторичен: сбой здесь не должен ронять сам анализ
+        logger.warning(f"[heartbeat] user_id={user_id} failed: {e}")
+
+
 async def collect_notes(state: TasteProfileState) -> TasteProfileState:
     """Узел 1: Собрать заметки."""
     logger.info(f"[collect_notes] user_id={state['user_id']}")
+    await _heartbeat(state["user_id"])
 
     async with AsyncSessionLocal() as session:
         repo = SqlAlchemyReadingEntryRepository(session)
@@ -37,6 +49,7 @@ async def collect_notes(state: TasteProfileState) -> TasteProfileState:
 async def analyze_taste(state: TasteProfileState) -> TasteProfileState:
     """Узел 2: LLM анализ."""
     logger.info(f"[analyze_taste] notes={len(state['notes'])}")
+    await _heartbeat(state["user_id"])
 
     if not state["notes"]:
         return {
