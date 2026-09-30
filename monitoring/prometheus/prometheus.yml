@@ -3,7 +3,8 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
+  # Оба инстанса приложения (имена сервисов из docker-compose, сеть lit-tracker)
   - job_name: 'lit-tracker'
-    static_configs:
-      - targets: ['172.17.0.1:8001']
     metrics_path: '/metrics'
+    static_configs:
+      - targets: ['app1:8001', 'app2:8001']
