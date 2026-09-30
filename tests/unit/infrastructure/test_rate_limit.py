@@ -45,6 +45,14 @@ def test_request_over_limit_returns_429(monkeypatch):
 
 def test_limit_is_per_client_ip(monkeypatch):
     client = make_client(monkeypatch, limit=1)
-    assert client.get("/ping", headers={"X-Forwarded-For": "1.1.1.1"}).status_code == 200
-    assert client.get("/ping", headers={"X-Forwarded-For": "2.2.2.2"}).status_code == 200
-    assert client.get("/ping", headers={"X-Forwarded-For": "1.1.1.1"}).status_code == 429
+    assert client.get("/ping", headers={"X-Real-IP": "1.1.1.1"}).status_code == 200
+    assert client.get("/ping", headers={"X-Real-IP": "2.2.2.2"}).status_code == 200
+    assert client.get("/ping", headers={"X-Real-IP": "1.1.1.1"}).status_code == 429
+
+
+def test_spoofed_x_forwarded_for_does_not_bypass_limit(monkeypatch):
+    """nginx лишь дописывает к X-Forwarded-For, первое значение шлёт клиент — доверять нельзя."""
+    client = make_client(monkeypatch, limit=1)
+    real = {"X-Real-IP": "9.9.9.9"}
+    assert client.get("/ping", headers={**real, "X-Forwarded-For": "1.1.1.1"}).status_code == 200
+    assert client.get("/ping", headers={**real, "X-Forwarded-For": "2.2.2.2"}).status_code == 429

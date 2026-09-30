@@ -51,9 +51,10 @@ class ReadingEntryService:
         return result
 
 
-    async def get_entry(self, id: int) -> ReadingEntryEntity:
+    async def get_entry(self, id: int, user_id: int) -> ReadingEntryEntity:
         entry = await self.entry_repo.get_by_id(id)
-        if not entry:
+        # чужая запись неотличима от несуществующей: не раскрываем, что она есть
+        if not entry or entry.user_id != user_id:
             raise NotFoundError("ReadingEntry", id)
         return entry
 
@@ -88,10 +89,11 @@ class ReadingEntryService:
     async def update_entry(
             self,
             entry_id: int,
+            user_id: int,
             data: ReadingEntryUpdateSchema,
     ) -> ReadingEntryEntity:
         """Обновить запись."""
-        entry = await self.get_entry(entry_id)
+        entry = await self.get_entry(entry_id, user_id)
 
         # Если заметка изменилась — пересчитать эмбеддинг
         if data.note is not None and data.note != entry.note:
@@ -108,7 +110,7 @@ class ReadingEntryService:
         return await self.entry_repo.update(entry)
 
 
-    async def delete_entry(self, entry_id: int) -> None:
-        await self.get_entry(entry_id)  # проверка на существование
+    async def delete_entry(self, entry_id: int, user_id: int) -> None:
+        await self.get_entry(entry_id, user_id)  # существует и принадлежит пользователю
         await self.entry_repo.delete(entry_id)
         logger.info(f"Entry deleted: {entry_id}")
