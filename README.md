@@ -84,26 +84,42 @@ Ollama на другой машине: укажи её адрес в `.env` (`OL
 
 ### Пример
 
+Все роуты, кроме `/auth/*`, `/health` и документации, требуют токен. Демо-пользователи создаются при
+запуске (`alice@example.com` и `bob@example.com`, пароль `Demo1234!` — только для локальной разработки).
+
 ```bash
+# зарегистрироваться (или войти демо-пользователем) и получить токен
+curl -X POST localhost:8080/auth/register -H 'content-type: application/json' \
+  -d '{"email": "me@example.com", "password": "Str0ng!Pass"}'
+TOKEN=$(curl -s -X POST localhost:8080/auth/login \
+  -d 'username=me@example.com&password=Str0ng!Pass' | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+AUTH="Authorization: Bearer $TOKEN"
+
 # добавить книгу
-curl -X POST localhost:8080/books -H 'content-type: application/json' \
+curl -X POST localhost:8080/books -H "$AUTH" -H 'content-type: application/json' \
   -d '{"title": "Dune", "author": "Frank Herbert"}'
 
 # отметить прочитанной с заметкой
-curl -X POST localhost:8080/books/1/entries -H 'content-type: application/json' \
+curl -X POST localhost:8080/books/1/entries -H "$AUTH" -H 'content-type: application/json' \
   -d '{"note": "Потрясающее мировоззрение и политика", "read_date": "2026-09-01", "rating": 5}'
 
 # запустить анализ вкуса (вернётся 202, работа идёт в фоне)
-curl -X POST localhost:8080/taste-profile/analyze
-curl localhost:8080/taste-profile          # status: pending → processing → done
+curl -X POST localhost:8080/taste-profile/analyze -H "$AUTH"
+curl localhost:8080/taste-profile -H "$AUTH"      # status: pending → processing → done
 
-curl localhost:8080/recommendations
+curl localhost:8080/recommendations -H "$AUTH"
 ```
+
+В Swagger UI (`/docs`) нажми **Authorize**, введи email и пароль — токен подставится во все запросы.
 
 ## API
 
 | Метод | Путь | Описание |
 |---|---|---|
+| `POST` | `/auth/register` | регистрация (пароль: 8+ символов, заглавная и строчная, цифра, спецсимвол) |
+| `POST` | `/auth/login` | вход (форма OAuth2: `username` = email) → access и refresh токены |
+| `POST` | `/auth/refresh` | новый access-токен по refresh-токену |
+| `GET` | `/auth/me` | текущий пользователь |
 | `POST` `GET` | `/books` | создать книгу / список |
 | `GET` `PATCH` `DELETE` | `/books/{id}` | одна книга |
 | `POST` | `/books/{id}/entries` | запись о прочтении с заметкой |
@@ -115,7 +131,19 @@ curl localhost:8080/recommendations
 | `GET` | `/recommendations` | рекомендации по вкусу |
 | `GET` | `/health`, `/metrics` | healthcheck и метрики Prometheus |
 
-Полная схема — в Swagger UI.
+Все роуты ниже `/auth` требуют `Authorization: Bearer <access_token>`. Полная схема — в Swagger UI.
+
+## Авторизация
+
+- JWT: короткоживущий **access**-токен (30 мин) и **refresh**-токен (7 дней); тип токена проверяется,
+  поэтому refresh нельзя использовать как access и наоборот. Токены и проверка — в общей библиотеке `common-service`
+  (`JWTService`, зависимость `create_auth_dependency`).
+- Пароли хранятся как bcrypt-хеш; при входе неверный пароль и незарегистрированный email неотличимы
+  (одинаковый ответ и время), email нечувствителен к регистру.
+- Данные изолированы по пользователям: чужую запись, анализ вкуса или рекомендации получить нельзя
+  (чужая запись отвечает 404, как несуществующая). Это проверяют e2e-тесты.
+- В `SERVICE_ENV=production` приложение не стартует с дефолтным `JWT_SECRET_KEY`. Свой секрет:
+  `openssl rand -hex 32`.
 
 ## Как устроен анализ вкуса
 
@@ -167,6 +195,6 @@ pytest tests/e2e
 
 ## Планы
 
-- Авторизация (JWT): сейчас все роуты работают от демо-пользователя `user_id=1`, он создаётся seed-скриптом.
+- Отзыв токенов (logout, ротация refresh) и ограничение частоты попыток входа.
 - Автодеплой на сервер из CD-пайплайна (сейчас образ публикуется в GHCR).
 - Очередь задач для тяжёлых фоновых операций, если нагрузка вырастет.
