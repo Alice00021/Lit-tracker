@@ -2,15 +2,18 @@ from common import RedisCache
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.services.auth_service import AuthService
 from app.application.services.book_service import BookService
 from app.application.services.reading_entry_service import ReadingEntryService
 from app.application.services.recommendation_service import RecommendationService
 from app.application.services.smart_search_service import SmartSearchService
 from app.application.services.taste_profile_service import TasteProfileService
 from app.core.database import get_session
+from app.core.security import jwt_service
 from app.domain.interfaces.book_repository import IBookRepository
 from app.domain.interfaces.reading_entry_repository import IReadingEntryRepository
 from app.domain.interfaces.taste_profile_repository import ITasteProfileRepository
+from app.domain.interfaces.user_repository import IUserRepository
 from app.infrastructure.database.repositories.book_repository import (
     SqlAlchemyBookRepository,
 )
@@ -19,6 +22,9 @@ from app.infrastructure.database.repositories.reading_entry_repository import (
 )
 from app.infrastructure.database.repositories.taste_profile_repository import (
     SqlAlchemyTasteProfileRepository,
+)
+from app.infrastructure.database.repositories.user_repository import (
+    SqlAlchemyUserRepository,
 )
 from app.infrastructure.llm.embedding_client import EmbeddingClient
 from app.infrastructure.llm.llm_client import LLMClient
@@ -41,6 +47,12 @@ async def get_taste_profile_repository(
         session: AsyncSession = Depends(get_session),
 ) -> ITasteProfileRepository:
     return SqlAlchemyTasteProfileRepository(session)
+
+
+async def get_user_repository(
+        session: AsyncSession = Depends(get_session),
+) -> IUserRepository:
+    return SqlAlchemyUserRepository(session)
 
 
 # Clients
@@ -73,6 +85,12 @@ async def get_reading_entry_service(
         embedding_client: EmbeddingClient = Depends(get_embedding_client),
 ) -> ReadingEntryService:
     return ReadingEntryService(entry_repo, book_repo, embedding_client)
+
+
+async def get_auth_service(
+        user_repo: IUserRepository = Depends(get_user_repository),
+) -> AuthService:
+    return AuthService(user_repo, jwt_service)
 
 
 async def get_taste_profile_service(

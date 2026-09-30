@@ -1,5 +1,6 @@
 
 from common import BaseSettings
+from pydantic import model_validator
 
 
 class Settings(BaseSettings):
@@ -28,5 +29,12 @@ class Settings(BaseSettings):
     # Rate limit
     RATE_LIMIT_REQUESTS: int = 100
     RATE_LIMIT_WINDOW: int = 60
+
+    @model_validator(mode="after")
+    def _forbid_default_secret_in_production(self):
+        if self.is_production() and "change-me" in self.JWT_SECRET_KEY:
+            raise ValueError("JWT_SECRET_KEY must be changed in production (openssl rand -hex 32)")
+        return self
+
 
 settings = Settings()

@@ -17,7 +17,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from app.application.services.taste_profile_service import recovery_loop
 from app.core.config import settings
 from app.core.database import engine
-from app.domain.exceptions import NotFoundError
+from app.domain.exceptions import AppException, NotFoundError
 from app.infrastructure.llm.langgraph.checkpointer import open_checkpointer
 from app.infrastructure.llm.langgraph.graph import build_taste_profile_graph
 from app.interfaces.api import api_router
@@ -88,6 +88,12 @@ async def not_found_handler(request: Request, exc: NotFoundError):
         status_code=404,
         content={"error": str(exc), "status_code": 404},
     )
+
+
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    headers = {"WWW-Authenticate": "Bearer"} if exc.status_code == 401 else None
+    return JSONResponse(status_code=exc.status_code, content=exc.to_dict(), headers=headers)
 
 
 @app.get("/")
