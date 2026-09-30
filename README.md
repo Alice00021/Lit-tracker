@@ -142,13 +142,24 @@ python -m venv venv && source venv/bin/activate
 pip install -e ../common-service
 pip install -r requirements.txt
 
-ruff check app tests
+ruff check app tests scripts
 pytest tests/unit          # быстрые тесты, внешние сервисы не нужны
 ```
 
-Без Docker для приложения понадобятся запущенные Postgres (с расширением `pgvector`) и Redis
-(`docker compose up -d postgres redis`), затем `alembic upgrade head` и
-`python -m scripts.setup_checkpointer`.
+**E2E-тесты** гоняют настоящее приложение (lifespan, Postgres, Redis, чекпоинтер LangGraph);
+Ollama в них подменён заглушкой, поэтому она не нужна. Нужны Postgres с `pgvector` и Redis
+(`docker compose up -d postgres redis`) и **отдельная** БД, чтобы не трогать рабочие данные:
+
+```bash
+docker compose exec postgres psql -U postgres -c "CREATE DATABASE lit_tracker_e2e"
+export DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5433/lit_tracker_e2e
+export REDIS_URL=redis://localhost:6380/1 SERVICE_ENV=test
+alembic upgrade head && python -m scripts.setup_checkpointer
+pytest tests/e2e
+```
+
+В CI (GitHub Actions) при каждом push/PR выполняются: lint, unit- и e2e-тесты, поиск секретов в истории
+(gitleaks) и сборка Docker-образа.
 
 ## Настройки
 
