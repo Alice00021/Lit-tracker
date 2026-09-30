@@ -86,13 +86,14 @@ class TestTasteProfile:
         await add_entry(client, book["id"])
         await client.post("/taste-profile/analyze")
         await wait_profile(client)
+        user_id = (await client.get("/auth/me")).json()["id"]
 
         # имитация: процесс умер, запись осталась processing и давно не обновлялась
         async with AsyncSessionLocal() as session:
             await session.execute(text(
                 "UPDATE taste_profiles SET status='processing', "
-                "updated_at = now() - interval '1 hour' WHERE user_id = 1"
-            ))
+                "updated_at = now() - interval '1 hour' WHERE user_id = :uid"
+            ), {"uid": user_id})
             await session.commit()
 
         tasks: set = set()
