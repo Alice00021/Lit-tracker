@@ -1,7 +1,8 @@
 """E2E: регистрация, вход, токены, защита роутов и изоляция данных между пользователями."""
 import uuid
 
-from tests.e2e.conftest import PASSWORD
+from app.core.config import settings
+from tests.e2e.conftest import PASSWORD, _http, auth_headers
 
 
 def new_email():
@@ -50,12 +51,25 @@ class TestLogin:
 
 
 class TestRefresh:
-    async def test_refresh_gives_working_access_token(self, anon_client, user_a):
-        r = await anon_client.post("/auth/refresh", json={"refresh_token": user_a["tokens"]["refresh_token"]})
+    async def test_refresh_rotates_tokens(self, anon_client, fresh_user):
+        old_refresh = fresh_user["tokens"]["refresh_token"]
+
+        r = await anon_client.post("/auth/refresh", json={"refresh_token": old_refresh})
 
         assert r.status_code == 200
-        me = await anon_client.get("/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"})
+        new = r.json()
+        assert new["refresh_token"] != old_refresh
+        me = await anon_client.get("/auth/me", headers=auth_headers(new))
         assert me.status_code == 200
+
+    async def test_refresh_token_is_single_use(self, anon_client, fresh_user):
+        old_refresh = fresh_user["tokens"]["refresh_token"]
+        first = await anon_client.post("/auth/refresh", json={"refresh_token": old_refresh})
+        assert first.status_code == 200
+
+        replay = await anon_client.post("/auth/refresh", json={"refresh_token": old_refresh})
+
+        assert replay.status_code == 401
 
     async def test_access_token_cannot_be_used_as_refresh(self, anon_client, user_a):
         r = await anon_client.post("/auth/refresh", json={"refresh_token": user_a["tokens"]["access_token"]})
@@ -68,6 +82,94 @@ class TestRefresh:
         )
 
         assert r.status_code == 401
+
+
+class TestLogout:
+    async def test_logout_revokes_access_token(self, anon_client, fresh_user):
+        headers = fresh_user["headers"]
+        assert (await anon_client.get("/auth/me", headers=headers)).status_code == 200
+
+        r = await anon_client.post("/auth/logout", headers=headers)
+
+        assert r.status_code == 204
+        assert (await anon_client.get("/auth/me", headers=headers)).status_code == 401
+        assert (await anon_client.get("/books", headers=headers)).status_code == 401
+
+    async def test_logout_with_refresh_token_revokes_it_too(self, anon_client, fresh_user):
+        refresh = fresh_user["tokens"]["refresh_token"]
+
+        r = await anon_client.post(
+            "/auth/logout", headers=fresh_user["headers"], json={"refresh_token": refresh},
+        )
+
+        assert r.status_code == 204
+        assert (await anon_client.post("/auth/refresh", json={"refresh_token": refresh})).status_code == 401
+
+    async def test_logout_without_refresh_keeps_refresh_usable(self, anon_client, fresh_user):
+        await anon_client.post("/auth/logout", headers=fresh_user["headers"])
+
+        r = await anon_client.post(
+            "/auth/refresh", json={"refresh_token": fresh_user["tokens"]["refresh_token"]},
+        )
+
+        assert r.status_code == 200
+
+    async def test_logout_requires_token(self, anon_client):
+        assert (await anon_client.post("/auth/logout")).status_code == 401
+
+    async def test_can_log_in_again_after_logout(self, anon_client, fresh_user):
+        await anon_client.post("/auth/logout", headers=fresh_user["headers"])
+
+        r = await anon_client.post(
+            "/auth/login", data={"username": fresh_user["email"], "password": PASSWORD},
+        )
+
+        assert r.status_code == 200
+        me = await anon_client.get("/auth/me", headers=auth_headers(r.json()))
+        assert me.status_code == 200
+
+    async def test_other_users_tokens_survive_logout(self, anon_client, fresh_user, user_b):
+        await anon_client.post("/auth/logout", headers=fresh_user["headers"])
+
+        assert (await anon_client.get("/auth/me", headers=user_b["headers"])).status_code == 200
+
+
+class TestLoginRateLimit:
+    async def _bad_login(self, ac, email):
+        return await ac.post("/auth/login", data={"username": email, "password": "Wrong1234!"})
+
+    async def test_lockout_after_max_failures_blocks_even_correct_password(self, anon_client, fresh_user):
+        email = fresh_user["email"]
+        for _ in range(settings.LOGIN_MAX_ATTEMPTS):
+            assert (await self._bad_login(anon_client, email)).status_code == 401
+
+        blocked = await anon_client.post("/auth/login", data={"username": email, "password": PASSWORD})
+
+        assert blocked.status_code == 429
+        assert int(blocked.headers["retry-after"]) > 0
+
+    async def test_lockout_does_not_affect_other_ip_or_account(self, running_app, anon_client, fresh_user, user_b):
+        email = fresh_user["email"]
+        for _ in range(settings.LOGIN_MAX_ATTEMPTS):
+            await self._bad_login(anon_client, email)
+
+        # тот же аккаунт с другого IP и другой аккаунт с того же IP входят нормально
+        async with _http(running_app) as elsewhere:
+            ok = await elsewhere.post("/auth/login", data={"username": email, "password": PASSWORD})
+        other = await anon_client.post("/auth/login", data={"username": user_b["email"], "password": PASSWORD})
+
+        assert ok.status_code == 200
+        assert other.status_code == 200
+
+    async def test_success_resets_counter(self, anon_client, fresh_user):
+        email = fresh_user["email"]
+        for _ in range(settings.LOGIN_MAX_ATTEMPTS - 1):
+            await self._bad_login(anon_client, email)
+        ok = await anon_client.post("/auth/login", data={"username": email, "password": PASSWORD})
+        assert ok.status_code == 200
+
+        for _ in range(settings.LOGIN_MAX_ATTEMPTS - 1):   # снова полный запас попыток
+            assert (await self._bad_login(anon_client, email)).status_code == 401
 
 
 class TestProtection:

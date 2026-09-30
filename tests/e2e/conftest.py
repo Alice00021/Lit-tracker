@@ -7,6 +7,7 @@
 Нужны: Postgres с pgvector и применённые миграции (alembic upgrade head +
 python -m scripts.setup_checkpointer), Redis. Адреса — из DATABASE_URL / REDIS_URL.
 """
+import random
 import uuid
 from typing import AsyncGenerator
 
@@ -54,9 +55,18 @@ async def running_app():
 
 
 def _http(running_app, headers=None) -> AsyncClient:
+    # У каждого клиента свой «IP» (X-Real-IP): счётчики лимитов не мешают друг другу
+    # и не копятся между запусками.
+    ip = ".".join(str(random.randint(1, 254)) for _ in range(4))
     return AsyncClient(
-        transport=ASGITransport(app=running_app), base_url="http://test", headers=headers,
+        transport=ASGITransport(app=running_app),
+        base_url="http://test",
+        headers={"X-Real-IP": ip, **(headers or {})},
     )
+
+
+def auth_headers(tokens: dict) -> dict:
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
 
 
 async def _register_and_login(running_app) -> dict:
@@ -72,7 +82,7 @@ async def _register_and_login(running_app) -> dict:
         "email": email,
         "password": PASSWORD,
         "tokens": tokens,
-        "headers": {"Authorization": f"Bearer {tokens['access_token']}"},
+        "headers": auth_headers(tokens),
     }
 
 
@@ -83,6 +93,12 @@ async def user_a(running_app) -> dict:
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def user_b(running_app) -> dict:
+    return await _register_and_login(running_app)
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def fresh_user(running_app) -> dict:
+    """Новый пользователь на один тест: для сценариев, где токены отзываются."""
     return await _register_and_login(running_app)
 
 
