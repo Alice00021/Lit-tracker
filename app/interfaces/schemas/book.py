@@ -5,14 +5,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class BookCreateSchema(BaseModel):
-    title: str = Field(..., max_length=500)
-    author: str = Field(..., max_length=255)
+    title: str = Field(..., min_length=1, max_length=500)
+    author: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
 
 
 class BookUpdateSchema(BaseModel):
-    title: Optional[str] = Field(None, max_length=500)
-    author: Optional[str] = Field(None, max_length=255)
+    title: Optional[str] = Field(None, min_length=1, max_length=500)
+    author: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
 
 

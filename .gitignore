@@ -35,3 +35,6 @@ htmlcov/
 # Monitoring data (volumes)
 monitoring/prometheus/data/
 monitoring/grafana/data/
+
+# Личные документы (шпаргалки и т.п.)
+docs/

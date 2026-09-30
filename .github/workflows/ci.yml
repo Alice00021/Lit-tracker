@@ -25,11 +25,17 @@ jobs:
         run: pip install ruff
 
       - name: Run ruff
-        run: ruff check app/ --output-format=github
+        run: ruff check app/ tests/ scripts/ --output-format=github
 
   test:
     name: Test
     runs-on: ubuntu-latest
+
+    env:
+      SERVICE_ENV: test
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/lit_tracker
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET_KEY: test-secret-key-32-characters-long!!!
 
     services:
       postgres:
@@ -79,13 +85,32 @@ jobs:
           pip install pytest pytest-asyncio pytest-cov httpx
 
       - name: Run unit tests
-        env:
-          SERVICE_ENV: test
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/lit_tracker
-          REDIS_URL: redis://localhost:6379/0
-          JWT_SECRET_KEY: test-secret-key-32-characters-long!!!
         run: |
           pytest tests/unit/ -v --cov=app --cov-report=term-missing
+
+      - name: Apply migrations
+        run: |
+          alembic upgrade head
+          python -m scripts.setup_checkpointer
+
+      - name: Run e2e tests
+        run: |
+          pytest tests/e2e/ -v
+
+  secrets:
+    name: Secrets scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code (вся история)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest \
+            detect --source /repo --no-banner --redact
 
   build:
     name: Build Docker
