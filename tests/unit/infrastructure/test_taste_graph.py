@@ -35,6 +35,7 @@ class FakeEntryRepo:
 class FakeProfileRepo:
     saved = None
     failed = None
+    heartbeats = 0
 
     def __init__(self, session):
         pass
@@ -44,6 +45,9 @@ class FakeProfileRepo:
 
     async def update_status(self, user_id, status, error):
         FakeProfileRepo.failed = (status, error)
+
+    async def heartbeat(self, user_id):
+        FakeProfileRepo.heartbeats += 1
 
 
 def make_llm(responses, prompts_seen):
@@ -65,6 +69,7 @@ def make_llm(responses, prompts_seen):
 def patched(monkeypatch):
     FakeProfileRepo.saved = None
     FakeProfileRepo.failed = None
+    FakeProfileRepo.heartbeats = 0
     FakeEntryRepo.notes = ["good book"]
     monkeypatch.setattr(nodes, "AsyncSessionLocal", FakeSession)
     monkeypatch.setattr(nodes, "SqlAlchemyReadingEntryRepository", FakeEntryRepo)

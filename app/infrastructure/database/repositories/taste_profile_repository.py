@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -79,3 +79,29 @@ class SqlAlchemyTasteProfileRepository(ITasteProfileRepository):
             model.status = status
             model.error = error
             await self.session.flush()
+
+    async def heartbeat(self, user_id: int) -> None:
+        stmt = (
+            update(TasteProfileModel)
+            .where(TasteProfileModel.user_id == user_id)
+            .values(status="processing", updated_at=func.now())
+        )
+        await self.session.execute(stmt)
+
+    async def claim_stale(self, stale_after_seconds: int) -> List[int]:
+        stmt = (
+            update(TasteProfileModel)
+            .where(
+                TasteProfileModel.status.in_(["pending", "processing"]),
+                TasteProfileModel.deleted_at.is_(None),
+                TasteProfileModel.updated_at
+                < func.now() - text(f"interval '{int(stale_after_seconds)} seconds'"),
+            )
+            .values(updated_at=func.now())
+            .returning(TasteProfileModel.user_id)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def commit(self) -> None:
+        await self.session.commit()
