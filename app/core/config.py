@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     TASTE_STALE_AFTER_SECONDS: int = 300
     TASTE_RECOVERY_INTERVAL_SECONDS: int = 60
 
+    # Защита входа от подбора пароля
+    LOGIN_MAX_ATTEMPTS: int = 5                # неудачных попыток с одного IP на один email
+    LOGIN_MAX_ATTEMPTS_PER_IP: int = 20        # неудачных попыток с одного IP суммарно
+    LOGIN_ATTEMPT_WINDOW_SECONDS: int = 900    # окно подсчёта и длительность блокировки
+
     # Rate limit
     RATE_LIMIT_REQUESTS: int = 100
     RATE_LIMIT_WINDOW: int = 60

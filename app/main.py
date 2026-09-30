@@ -92,7 +92,11 @@ async def not_found_handler(request: Request, exc: NotFoundError):
 
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
-    headers = {"WWW-Authenticate": "Bearer"} if exc.status_code == 401 else None
+    headers = None
+    if exc.status_code == 401:
+        headers = {"WWW-Authenticate": "Bearer"}
+    elif exc.status_code == 429 and exc.details.get("retry_after"):
+        headers = {"Retry-After": str(exc.details["retry_after"])}
     return JSONResponse(status_code=exc.status_code, content=exc.to_dict(), headers=headers)
 
 

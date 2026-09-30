@@ -8,12 +8,14 @@ from app.application.services.reading_entry_service import ReadingEntryService
 from app.application.services.recommendation_service import RecommendationService
 from app.application.services.smart_search_service import SmartSearchService
 from app.application.services.taste_profile_service import TasteProfileService
+from app.core.config import settings
 from app.core.database import get_session
-from app.core.security import jwt_service
+from app.core.security import jwt_service, token_blacklist
 from app.domain.interfaces.book_repository import IBookRepository
 from app.domain.interfaces.reading_entry_repository import IReadingEntryRepository
 from app.domain.interfaces.taste_profile_repository import ITasteProfileRepository
 from app.domain.interfaces.user_repository import IUserRepository
+from app.infrastructure.cache.login_rate_limiter import LoginRateLimiter
 from app.infrastructure.database.repositories.book_repository import (
     SqlAlchemyBookRepository,
 )
@@ -90,7 +92,12 @@ async def get_reading_entry_service(
 async def get_auth_service(
         user_repo: IUserRepository = Depends(get_user_repository),
 ) -> AuthService:
-    return AuthService(user_repo, jwt_service)
+    limiter = LoginRateLimiter(
+        settings.LOGIN_MAX_ATTEMPTS,
+        settings.LOGIN_MAX_ATTEMPTS_PER_IP,
+        settings.LOGIN_ATTEMPT_WINDOW_SECONDS,
+    )
+    return AuthService(user_repo, jwt_service, token_blacklist, limiter)
 
 
 async def get_taste_profile_service(

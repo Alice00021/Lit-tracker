@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -26,6 +27,6 @@ class TokenSchema(BaseModel):
     token_type: str = "bearer"
 
 
-class AccessTokenSchema(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+class LogoutSchema(BaseModel):
+    """Refresh-токен можно передать, чтобы отозвать и его (иначе отзывается только access)."""
+    refresh_token: Optional[str] = None

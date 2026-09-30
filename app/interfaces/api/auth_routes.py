@@ -1,12 +1,13 @@
 from common import AuthenticatedUser
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.application.services.auth_service import AuthService
 from app.core.security import get_current_user
+from app.interfaces.api.client_ip import get_client_ip
 from app.interfaces.api.dependencies import get_auth_service
 from app.interfaces.schemas.user import (
-    AccessTokenSchema,
+    LogoutSchema,
     RefreshSchema,
     RegisterSchema,
     TokenSchema,
@@ -28,6 +29,7 @@ async def register(
 
 @router.post("/login", response_model=TokenSchema)
 async def login(
+        request: Request,
         form: OAuth2PasswordRequestForm = Depends(),
         service: AuthService = Depends(get_auth_service),
 ):
@@ -35,18 +37,33 @@ async def login(
     Вход. Форма OAuth2: `username` = email, `password`.
 
     Формат формы нужен, чтобы работала кнопка Authorize в Swagger UI.
+    После нескольких неудачных попыток — 429 с заголовком `Retry-After`.
     """
-    user = await service.authenticate(form.username, form.password)
-    return service.issue_tokens(user)
+    return await service.login(form.username, form.password, get_client_ip(request))
 
 
-@router.post("/refresh", response_model=AccessTokenSchema)
+@router.post("/refresh", response_model=TokenSchema)
 async def refresh(
         data: RefreshSchema,
         service: AuthService = Depends(get_auth_service),
 ):
-    """Получить новый access-токен по refresh-токену."""
-    return await service.refresh_access_token(data.refresh_token)
+    """
+    Обменять refresh-токен на новую пару токенов.
+
+    Refresh одноразовый: использованный токен больше не работает, сохрани новый.
+    """
+    return await service.refresh(data.refresh_token)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+        data: LogoutSchema | None = None,
+        current: AuthenticatedUser = Depends(get_current_user),
+        service: AuthService = Depends(get_auth_service),
+):
+    """Выход: отзывает текущий access-токен и, если передан, refresh-токен."""
+    await service.logout(current, data.refresh_token if data else None)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/me", response_model=UserReadSchema)
